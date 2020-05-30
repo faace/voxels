@@ -1,4 +1,4 @@
-AFRAME.registerComponent('mergedVoxels', {
+AFRAME.registerComponent('mergedvoxels', {
     schema: {
         src: { type: 'string', default: '' }
     },
@@ -14,11 +14,11 @@ AFRAME.registerComponent('mergedVoxels', {
     }
 });
 
-AFRAME.registerPrimitive('a-mergedVoxels', {
+AFRAME.registerPrimitive('a-mergedvoxels', {
     defaultComponents: {
         MergedVoxels: {},
     },
     mappings: {
-        src: 'mergedVoxels.src',
+        src: 'mergedvoxels.src',
     }
 });
