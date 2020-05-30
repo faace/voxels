@@ -12,10 +12,10 @@
 // a face position
 // d c
 // a b
-var MergeBlocks = function (info) {
+var MergedVoxels = function (info) {
     this.init(info);
 };
-MergeBlocks.prototype.init = function (info) {
+MergedVoxels.prototype.init = function (info) {
     this.info = info;
     this.map = JSON.parse(JSON.stringify(info.map)) || {};
     this.textures = this.info.textures || {};
@@ -26,7 +26,7 @@ MergeBlocks.prototype.init = function (info) {
     this.showFaces = info.showFaces || { front: true, back: true, left: true, right: true, top: true, bottom: true };
     return this;
 };
-MergeBlocks.prototype.run = function (cb) {
+MergedVoxels.prototype.run = function (cb) {
     if (!this.bound) this.bound = this.getBound(this.map);
     if (!this.center) this.center = this.getCenter(this.align);
     var vertices = this.buildVertices();
@@ -44,7 +44,7 @@ MergeBlocks.prototype.run = function (cb) {
     cb(false, mesh);
 };
 
-MergeBlocks.prototype.getMaterial = function (color, s, t) {
+MergedVoxels.prototype.getMaterial = function (color, s, t) {
     var textures = this.textures;
     if (textures[color]) { // check where we need to change a special color to a texture
         var tag = textures[color];
@@ -64,7 +64,7 @@ MergeBlocks.prototype.getMaterial = function (color, s, t) {
     }
     return new THREE.MeshPhongMaterial({ color: color });
 };
-MergeBlocks.prototype.getMaterialIdx = function (material, s, t) {
+MergedVoxels.prototype.getMaterialIdx = function (material, s, t) {
     var color = material.color;
     var opacity = material.opacity;
     var tag = color + '_' + opacity + '_' + s + '_' + t;
@@ -82,7 +82,7 @@ MergeBlocks.prototype.getMaterialIdx = function (material, s, t) {
     return this.materialsMap[tag];
 };
 
-MergeBlocks.prototype.createGeometry = function (vertices, faces) {
+MergedVoxels.prototype.createGeometry = function (vertices, faces) {
     var geometry = new THREE.Geometry();
     for (var i = 0; i < vertices.length; i++) {
         if (vertices[i][3]) {
@@ -108,26 +108,26 @@ MergeBlocks.prototype.createGeometry = function (vertices, faces) {
     geometry.computeFaceNormals();
     return geometry;
 };
-MergeBlocks.prototype.updateFaces = function (vertices, faces) { // update the faces with new vertices index
+MergedVoxels.prototype.updateFaces = function (vertices, faces) { // update the faces with new vertices index
     for (var i = 0; i < faces.length; i++) {
         faces[i][0] = vertices[faces[i][0]][4];
         faces[i][1] = vertices[faces[i][1]][4];
         faces[i][2] = vertices[faces[i][2]][4];
     }
 };
-MergeBlocks.prototype.updateVertices = function (vertices) { // mark all the used vertices so that we can remove those unused later.
+MergedVoxels.prototype.updateVertices = function (vertices) { // mark all the used vertices so that we can remove those unused later.
     var idx = 0;
     for (var i = 0; i < vertices.length; i++) {
         if (vertices[i][3]) vertices[i][4] = idx++;
     }
 };
-MergeBlocks.prototype.isSameMaterial = function (map, x, y, z, material) { // check where there are the same material
+MergedVoxels.prototype.isSameMaterial = function (map, x, y, z, material) { // check where there are the same material
     if (map[y] && map[y][z] && map[y][z][x]) {
         if (map[y][z][x].color == material.color && map[y][z][x].opacity == material.opacity) return true;
     }
     return false
 };
-MergeBlocks.prototype.FindAndSetPointBottom = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
+MergedVoxels.prototype.FindAndSetPointBottom = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
     var face = 'bottom';
     var xx, yy, zz;
     var material = map[y][z][x];
@@ -154,7 +154,7 @@ MergeBlocks.prototype.FindAndSetPointBottom = function (bound, map, x, y, z, to)
         to.z = zz;
     }
 };
-MergeBlocks.prototype.FindAndSetPointTop = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
+MergedVoxels.prototype.FindAndSetPointTop = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
     var face = 'top';
     var xx, yy, zz;
     var material = map[y][z][x];
@@ -182,7 +182,7 @@ MergeBlocks.prototype.FindAndSetPointTop = function (bound, map, x, y, z, to) {/
     }
 };
 
-MergeBlocks.prototype.FindAndSetPointRight = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
+MergedVoxels.prototype.FindAndSetPointRight = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
     var face = 'right';
     var xx, yy, zz;
     var material = map[y][z][x];
@@ -209,7 +209,7 @@ MergeBlocks.prototype.FindAndSetPointRight = function (bound, map, x, y, z, to) 
         to.y = yy;
     }
 };
-MergeBlocks.prototype.FindAndSetPointLeft = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
+MergedVoxels.prototype.FindAndSetPointLeft = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
     var face = 'left';
     var xx, yy, zz;
     var material = map[y][z][x];
@@ -237,7 +237,7 @@ MergeBlocks.prototype.FindAndSetPointLeft = function (bound, map, x, y, z, to) {
     }
 };
 
-MergeBlocks.prototype.FindAndSetPointBack = function (bound, map, x, y, z, to) { // find from left-bottom to right-top in back face
+MergedVoxels.prototype.FindAndSetPointBack = function (bound, map, x, y, z, to) { // find from left-bottom to right-top in back face
     var face = 'back';
     var xx, yy, zz;
     var material = map[y][z][x];
@@ -264,7 +264,7 @@ MergeBlocks.prototype.FindAndSetPointBack = function (bound, map, x, y, z, to) {
         to.y = yy;
     }
 };
-MergeBlocks.prototype.FindAndSetPointFront = function (bound, map, x, y, z, to) { // find from left-bottom to right-top in front face
+MergedVoxels.prototype.FindAndSetPointFront = function (bound, map, x, y, z, to) { // find from left-bottom to right-top in front face
     var face = 'front';
     var xx, yy, zz;
     var material = map[y][z][x];
@@ -291,7 +291,7 @@ MergeBlocks.prototype.FindAndSetPointFront = function (bound, map, x, y, z, to) 
         to.y = yy;
     }
 };
-MergeBlocks.prototype.canIgnore = function (map, sx, sy, sz, x, y, z) {
+MergedVoxels.prototype.canIgnore = function (map, sx, sy, sz, x, y, z) {
     if (!map[sy][sz][sx]) return true;
     if (map[y] && map[y][z] && map[y][z][x]) {
         if ((typeof map[y][z][x].opacity == 'undefined' || map[y][z][x].opacity >= 1)) return true;
@@ -300,7 +300,7 @@ MergeBlocks.prototype.canIgnore = function (map, sx, sy, sz, x, y, z) {
     // return (map[y] && map[y][z] && map[y][z][x] && (typeof map[y][z][x].opacity == 'undefined' || map[y][z][x].opacity >= 1));
     return false;
 };
-MergeBlocks.prototype.getPointIdx = function (bound, x, y, z) { // get the first index(index 0 of the cube) of a point
+MergedVoxels.prototype.getPointIdx = function (bound, x, y, z) { // get the first index(index 0 of the cube) of a point
     var yy = y - bound.minY;
     var zz = z - bound.minZ;
     var xx = x - bound.minX;
@@ -310,7 +310,7 @@ MergeBlocks.prototype.getPointIdx = function (bound, x, y, z) { // get the first
     idx += xx;
     return idx * 8;
 };
-MergeBlocks.prototype.buildAFace = function (faces, a, b, c, d, vertices, material, s, t) { // build a rect face with 2 tree triangle faces and mark the associated points
+MergedVoxels.prototype.buildAFace = function (faces, a, b, c, d, vertices, material, s, t) { // build a rect face with 2 tree triangle faces and mark the associated points
     // d c
     // a b
     faces.push([a, b, c, material, s, t]);
@@ -320,7 +320,7 @@ MergeBlocks.prototype.buildAFace = function (faces, a, b, c, d, vertices, materi
     vertices[c][3]++;
     vertices[d][3]++;
 };
-MergeBlocks.prototype.buildFaces = function (vertices) { // build all the faces, each index of the faces is the orginal one which will be updated later
+MergedVoxels.prototype.buildFaces = function (vertices) { // build all the faces, each index of the faces is the orginal one which will be updated later
     var bound = this.bound;
     var map = this.map;
     var faces = [];
@@ -451,7 +451,7 @@ MergeBlocks.prototype.buildFaces = function (vertices) { // build all the faces,
 
     return faces;
 };
-MergeBlocks.prototype.buildVertices = function () { // record all points including all used and unused
+MergedVoxels.prototype.buildVertices = function () { // record all points including all used and unused
     var bound = this.bound;
     var width = this.width;
     var height = this.height;
@@ -483,11 +483,11 @@ MergeBlocks.prototype.buildVertices = function () { // record all points includi
     }
     return vertices;
 };
-MergeBlocks.prototype.getCenter2 = function (min, max, step, scale) {
+MergedVoxels.prototype.getCenter2 = function (min, max, step, scale) {
     return min * step + (max - min) * step * scale;
-    return min + scale * (max - min) * step;
+    // return min + scale * (max - min) * step;
 };
-MergeBlocks.prototype.getCenter = function (align) {
+MergedVoxels.prototype.getCenter = function (align) {
     var bound = this.bound;
     var width = this.width;
     var height = this.height;
@@ -554,7 +554,7 @@ MergeBlocks.prototype.getCenter = function (align) {
     console.log(center);
     return center;
 };
-MergeBlocks.prototype.getBound = function (map) { // caculate the bound of the blocks
+MergedVoxels.prototype.getBound = function (map) { // caculate the bound of the blocks
     var minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity, minX = Infinity, maxX = -Infinity;
     var y, z, x, map2, map3;
     for (y in map) {

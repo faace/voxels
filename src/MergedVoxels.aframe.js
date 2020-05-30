@@ -1,4 +1,4 @@
-AFRAME.registerComponent('mergeBlocks', {
+AFRAME.registerComponent('mergedVoxels', {
     schema: {
         src: { type: 'string', default: '' }
     },
@@ -7,18 +7,18 @@ AFRAME.registerComponent('mergeBlocks', {
         if (this.data.src) {
             info = JSON.parse(this.data.src);
             var el = this.el;
-            new MergeBlocks(info).run(function (error, mesh) {
+            new MergedVoxels(info).run(function (error, mesh) {
                 el.setObject3D('mesh', mesh);
             });
         }
     }
 });
 
-AFRAME.registerPrimitive('a-mergeBlocks', {
+AFRAME.registerPrimitive('a-mergedVoxels', {
     defaultComponents: {
-        mergeBlocks: {},
+        MergedVoxels: {},
     },
     mappings: {
-        src: 'mergeBlocks.src',
+        src: 'mergedVoxels.src',
     }
 });
