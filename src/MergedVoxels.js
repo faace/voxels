@@ -351,7 +351,7 @@
         if (this.showFaces.front) { // front
             for (y = bound.minY; y <= bound.maxY; y++) {
                 if (!map[y]) continue;
-                for (z = bound.minZ; z <= bound.maxZ; z++) {
+                for (z = bound.maxZ; z >= bound.minZ; z--) {
                     if (!map[y][z]) continue;
                     for (x = bound.minX; x <= bound.maxX; x++) {
                         if (!map[y][z][x]) continue; // no need to handle if it is a empty block
@@ -371,7 +371,7 @@
         if (this.showFaces.back) { // back
             for (y = bound.minY; y <= bound.maxY; y++) {
                 if (!map[y]) continue;
-                for (z = bound.maxZ; z >= bound.minZ; z--) {
+                for (z = bound.minZ; z <= bound.maxZ; z++) {
                     if (!map[y][z]) continue;
                     for (x = bound.maxX; x >= bound.minX; x--) {
                         if (!map[y][z][x]) continue; // no need to handle if it is a empty block
