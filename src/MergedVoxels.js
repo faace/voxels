@@ -24,6 +24,7 @@
 
     MergedVoxels.prototype.init = function (info) {
         this.info = info;
+        this.options = info.options || {};
         this.map = JSON.parse(JSON.stringify(info.map)) || {};
         this.textures = this.info.textures || {};
         this.width = info.width || 1;
@@ -53,6 +54,14 @@
 
     MergedVoxels.prototype.getMaterial = function (color, s, t) {
         var textures = this.textures;
+        var parm = {};
+
+        if (this.options.polygonOffset) {
+            parm.polygonOffset = true;
+            parm.polygonOffsetFactor = this.options.polygonOffsetFactor || -1.0;
+            parm.polygonOffsetUnits = this.options.polygonOffsetUnits || -4.0;
+        }
+
         if (textures[color]) { // check where we need to change a special color to a texture
             var tag = textures[color];
             var src;
@@ -66,10 +75,14 @@
                 texture.wrapS = THREE.RepeatWrapping;
                 texture.wrapT = THREE.RepeatWrapping;
                 texture.repeat.set(s, t);
-                return new THREE.MeshBasicMaterial({ map: texture });
+
+                parm.map = texture;
+                return new THREE.MeshBasicMaterial(map);
             }
         }
-        return new THREE.MeshPhongMaterial({ color: color });
+
+        parm.color = color;
+        return new THREE.MeshPhongMaterial(parm);
     };
     MergedVoxels.prototype.getMaterialIdx = function (material, s, t) {
         var color = material.color;
