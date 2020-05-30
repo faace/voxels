@@ -1,3 +1,4 @@
+
 AFRAME.registerComponent('mergedvoxels', {
     schema: {
         src: { type: 'string', default: '' }
@@ -16,7 +17,7 @@ AFRAME.registerComponent('mergedvoxels', {
 
 AFRAME.registerPrimitive('a-mergedvoxels', {
     defaultComponents: {
-        MergedVoxels: {},
+        mergedvoxels: {},
     },
     mappings: {
         src: 'mergedvoxels.src',
