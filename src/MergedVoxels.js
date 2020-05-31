@@ -154,6 +154,7 @@
         var noSame;
         to.x = x; to.y = y; to.z = z;
         for (xx = x; xx <= bound.maxX; xx++) { // facing the bottom, left to right and mark
+            if (this.canIgnore(map, xx, y, z, xx, y - 1, z)) break;
             if (this.isSameMaterial(map, xx, y, z, material) && !map[y][z][xx][face]) {
                 map[y][z][xx][face] = true;
                 to.x = xx;
@@ -162,7 +163,7 @@
         for (zz = z + 1; zz <= bound.maxZ; zz++) {
             noSame = false;
             for (xx = x; xx <= to.x; xx++) { // bottom to up
-                if (!this.isSameMaterial(map, xx, y, zz, material) || map[y][zz][xx][face]) {
+                if (this.canIgnore(map, xx, y, zz, xx, y - 1, zz) || !this.isSameMaterial(map, xx, y, zz, material) || map[y][zz][xx][face]) {
                     noSame = true;
                     break;
                 }
@@ -181,6 +182,7 @@
         var noSame;
         to.x = x; to.y = y; to.z = z;
         for (xx = x; xx <= bound.maxX; xx++) { // facing the top, left to right and mark
+            if (this.canIgnore(map, xx, y, z, xx, y + 1, z)) break;
             if (this.isSameMaterial(map, xx, y, z, material) && !map[y][z][xx][face]) {
                 map[y][z][xx][face] = true;
                 to.x = xx;
@@ -189,7 +191,7 @@
         for (zz = z - 1; zz >= bound.minZ; zz--) {
             noSame = false;
             for (xx = x; xx <= to.x; xx++) { // bottom to up
-                if (!this.isSameMaterial(map, xx, y, zz, material) || map[y][zz][xx][face]) {
+                if (this.canIgnore(map, xx, y, zz, xx, y + 1, zz) || !this.isSameMaterial(map, xx, y, zz, material) || map[y][zz][xx][face]) {
                     noSame = true;
                     break;
                 }
@@ -209,6 +211,7 @@
         var noSame;
         to.x = x; to.y = y; to.z = z;
         for (zz = z; zz >= bound.minZ; zz--) { // facing the rgiht, left to right and mark
+            if (this.canIgnore(map, x, y, zz, x + 1, y, zz)) break;
             if (this.isSameMaterial(map, x, y, zz, material) && !map[y][zz][x][face]) {
                 map[y][zz][x][face] = true;
                 to.z = zz;
@@ -217,7 +220,7 @@
         for (yy = y + 1; yy <= bound.maxY; yy++) {
             noSame = false;
             for (zz = z; zz >= to.z; zz--) { // bottom to up
-                if (!this.isSameMaterial(map, x, yy, zz, material) || map[yy][zz][x][face]) {
+                if (this.canIgnore(map, x, yy, zz, x + 1, yy, zz) || !this.isSameMaterial(map, x, yy, zz, material) || map[yy][zz][x][face]) {
                     noSame = true;
                     break;
                 }
@@ -236,6 +239,7 @@
         var noSame;
         to.x = x; to.y = y; to.z = z;
         for (zz = z; zz <= bound.maxZ; zz++) { // facing the left, left to right and mark
+            if (this.canIgnore(map, x, y, zz, x - 1, y, zz)) break;
             if (this.isSameMaterial(map, x, y, zz, material) && !map[y][zz][x][face]) {
                 map[y][zz][x][face] = true;
                 to.z = zz;
@@ -244,7 +248,7 @@
         for (yy = y + 1; yy <= bound.maxY; yy++) {
             noSame = false;
             for (zz = z; zz <= to.z; zz++) { // bottom to up
-                if (!this.isSameMaterial(map, x, yy, zz, material) || map[yy][zz][x][face]) {
+                if (this.canIgnore(map, x, yy, zz, x - 1, yy, zz) || !this.isSameMaterial(map, x, yy, zz, material) || map[yy][zz][x][face]) {
                     noSame = true;
                     break;
                 }
@@ -264,6 +268,7 @@
         var noSame;
         to.x = x; to.y = y; to.z = z;
         for (xx = x; xx >= bound.minX; xx--) { // facing the back, left to right and mark
+            if (this.canIgnore(map, xx, y, z, xx, y, z + 1)) break;
             if (this.isSameMaterial(map, xx, y, z, material) && !map[y][z][xx][face]) {
                 map[y][z][xx][face] = true;
                 to.x = xx;
@@ -272,7 +277,7 @@
         for (yy = y + 1; yy <= bound.maxY; yy++) {
             noSame = false;
             for (xx = x; xx >= to.x; xx--) { // bottom to up
-                if (!this.isSameMaterial(map, xx, yy, z, material) || map[yy][z][xx][face]) {
+                if (this.canIgnore(map, xx, yy, z, xx, yy, z + 1) || !this.isSameMaterial(map, xx, yy, z, material) || map[yy][z][xx][face]) {
                     noSame = true;
                     break;
                 }
@@ -291,6 +296,7 @@
         var noSame;
         to.x = x; to.y = y; to.z = z;
         for (xx = x; xx <= bound.maxX; xx++) { // facing the front, left to right and mark
+            if (this.canIgnore(map, xx, y, z, xx, y, z - 1)) break;
             if (this.isSameMaterial(map, xx, y, z, material) && !map[y][z][xx][face]) {
                 map[y][z][xx][face] = true;
                 to.x = xx;
@@ -299,7 +305,7 @@
         for (yy = y + 1; yy <= bound.maxY; yy++) {
             noSame = false;
             for (xx = x; xx <= to.x; xx++) { // bottom to up
-                if (!this.isSameMaterial(map, xx, yy, z, material) || map[yy][z][xx][face]) {
+                if (this.canIgnore(map, xx, yy, z, xx, yy, z - 1) || !this.isSameMaterial(map, xx, yy, z, material) || map[yy][z][xx][face]) {
                     noSame = true;
                     break;
                 }
