@@ -13,20 +13,21 @@
 // d c
 // a b
 (function () {
-    var MergedVoxels = function (info) {
+    var Voxels = function (info) {
         this.init(info);
     };
 
-    if (typeof window != 'undefined') window.MergedVoxels = MergedVoxels;
-    else if (typeof global != 'undefined') global.MergedVoxels = MergedVoxels;
+    if (typeof window != 'undefined') window.Voxels = Voxels;
+    else if (typeof global != 'undefined') global.Voxels = Voxels;
 
-    if (typeof module != 'undefined' && module.exports) module.exports = MergedVoxels;
+    if (typeof module != 'undefined' && module.exports) module.exports = Voxels;
 
-    MergedVoxels.prototype.init = function (info) {
+    Voxels.prototype.init = function (info) {
         this.info = info;
         this.options = info.options || {};
-        this.map = JSON.parse(JSON.stringify(info.map)) || {};
+        this.map = this.copyMap(info.map || {});
         this.textures = this.info.textures || {};
+        this.opacities = this.info.opacities || {};
         this.width = info.width || 1;
         this.height = info.height || 1;
         this.depth = info.depth || 1;
@@ -34,7 +35,7 @@
         this.showFaces = info.showFaces || { front: true, back: true, left: true, right: true, top: true, bottom: true };
         return this;
     };
-    MergedVoxels.prototype.run = function (cb) {
+    Voxels.prototype.run = function (cb) {
         if (!this.bound) this.bound = this.getBound(this.map);
         if (!this.center) this.center = this.getCenter(this.align);
         var vertices = this.buildVertices();
@@ -51,10 +52,26 @@
         var mesh = new THREE.Mesh(geometry, this.materials);
         cb(false, mesh);
     };
-
-    MergedVoxels.prototype.getMaterial = function (color, s, t) {
+    Voxels.prototype.copyMap = function (map) {
+        var newMap = {};
+        for (var y in map) {
+            var yMap = map[y];
+            var newYMap = newMap[y] = {};
+            for (var z in yMap) {
+                var zMap = yMap[z];
+                var newZMap = newYMap[z] = {};
+                for (var x in zMap) {
+                    newZMap[x] = { color: zMap[x] };
+                }
+            }
+        }
+        return newMap;
+    };
+    Voxels.prototype.getMaterial = function (color, s, t) {
         var textures = this.textures;
+        var opacity = this.opacities[color];
         var parm = {};
+        var material;
 
         if (this.options.polygonOffset) {
             parm.polygonOffset = true;
@@ -77,32 +94,37 @@
                 texture.repeat.set(s, t);
 
                 parm.map = texture;
-                return new THREE.MeshBasicMaterial(map);
+                material = new THREE.MeshBasicMaterial(parm);
+                if (typeof opacity != 'undefined') {
+                    material.transparent = true;
+                    material.opacity = opacity;
+                    // m.side = THREE.DoubleSide;
+                }
+                return material;
             }
         }
 
         parm.color = color;
-        return new THREE.MeshPhongMaterial(parm);
+        material = new THREE.MeshPhongMaterial(parm);
+        if (typeof opacity != 'undefined') {
+            material.transparent = true;
+            material.opacity = opacity;
+            // m.side = THREE.DoubleSide;
+        }
+        return material;
     };
-    MergedVoxels.prototype.getMaterialIdx = function (material, s, t) {
-        var color = material.color;
-        var opacity = material.opacity;
-        var tag = color + '_' + opacity + '_' + s + '_' + t;
+    Voxels.prototype.getMaterialIdx = function (color, s, t) {
+        // var color = material.color;
+        var tag = color + '_' + s + '_' + t;
         if (typeof this.materialsMap[tag] == 'undefined') {
             var m = this.getMaterial(color, s, t);
-            if (opacity) {
-                m.transparent = true;
-                m.opacity = opacity;
-                // m.side = THREE.DoubleSide;
-            }
-
             this.materialsMap[tag] = this.materials.length;
             this.materials.push(m);
         }
         return this.materialsMap[tag];
     };
 
-    MergedVoxels.prototype.createGeometry = function (vertices, faces) {
+    Voxels.prototype.createGeometry = function (vertices, faces) {
         var geometry = new THREE.Geometry();
         for (var i = 0; i < vertices.length; i++) {
             if (vertices[i][3]) {
@@ -120,7 +142,7 @@
         var uv2 = [t0, t2, t3];
         for (var i = 0, face, idx; i < faces.length; i++) {
             face = faces[i];
-            idx = this.getMaterialIdx(face[3], face[4], face[5]);
+            idx = this.getMaterialIdx(face[3].color, face[4], face[5]);
             geometry.faces.push(new THREE.Face3(face[0], face[1], face[2], undefined, undefined, idx));
             faceVertexUv.push(uv1, uv2);
         }
@@ -128,26 +150,26 @@
         geometry.computeFaceNormals();
         return geometry;
     };
-    MergedVoxels.prototype.updateFaces = function (vertices, faces) { // update the faces with new vertices index
+    Voxels.prototype.updateFaces = function (vertices, faces) { // update the faces with new vertices index
         for (var i = 0; i < faces.length; i++) {
             faces[i][0] = vertices[faces[i][0]][4];
             faces[i][1] = vertices[faces[i][1]][4];
             faces[i][2] = vertices[faces[i][2]][4];
         }
     };
-    MergedVoxels.prototype.updateVertices = function (vertices) { // mark all the used vertices so that we can remove those unused later.
+    Voxels.prototype.updateVertices = function (vertices) { // mark all the used vertices so that we can remove those unused later.
         var idx = 0;
         for (var i = 0; i < vertices.length; i++) {
             if (vertices[i][3]) vertices[i][4] = idx++;
         }
     };
-    MergedVoxels.prototype.isSameMaterial = function (map, x, y, z, material) { // check where there are the same material
-        if (map[y] && map[y][z] && map[y][z][x]) {
-            if (map[y][z][x].color == material.color && map[y][z][x].opacity == material.opacity) return true;
+    Voxels.prototype.isSameMaterial = function (map, x, y, z, color) { // check where there are the same material
+        if (map[y] && map[y][z] && typeof map[y][z][x] != 'undefined') {
+            if (map[y][z][x] === color) return true;
         }
         return false
     };
-    MergedVoxels.prototype.FindAndSetPointBottom = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
+    Voxels.prototype.FindAndSetPointBottom = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
         var face = 'bottom';
         var xx, yy, zz;
         var material = map[y][z][x];
@@ -175,7 +197,7 @@
             to.z = zz;
         }
     };
-    MergedVoxels.prototype.FindAndSetPointTop = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
+    Voxels.prototype.FindAndSetPointTop = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
         var face = 'top';
         var xx, yy, zz;
         var material = map[y][z][x];
@@ -204,7 +226,7 @@
         }
     };
 
-    MergedVoxels.prototype.FindAndSetPointRight = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
+    Voxels.prototype.FindAndSetPointRight = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
         var face = 'right';
         var xx, yy, zz;
         var material = map[y][z][x];
@@ -232,7 +254,7 @@
             to.y = yy;
         }
     };
-    MergedVoxels.prototype.FindAndSetPointLeft = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
+    Voxels.prototype.FindAndSetPointLeft = function (bound, map, x, y, z, to) {// 查找同一面的右下角定点和右上角定点
         var face = 'left';
         var xx, yy, zz;
         var material = map[y][z][x];
@@ -261,7 +283,7 @@
         }
     };
 
-    MergedVoxels.prototype.FindAndSetPointBack = function (bound, map, x, y, z, to) { // find from left-bottom to right-top in back face
+    Voxels.prototype.FindAndSetPointBack = function (bound, map, x, y, z, to) { // find from left-bottom to right-top in back face
         var face = 'back';
         var xx, yy, zz;
         var material = map[y][z][x];
@@ -289,7 +311,7 @@
             to.y = yy;
         }
     };
-    MergedVoxels.prototype.FindAndSetPointFront = function (bound, map, x, y, z, to) { // find from left-bottom to right-top in front face
+    Voxels.prototype.FindAndSetPointFront = function (bound, map, x, y, z, to) { // find from left-bottom to right-top in front face
         var face = 'front';
         var xx, yy, zz;
         var material = map[y][z][x];
@@ -317,16 +339,15 @@
             to.y = yy;
         }
     };
-    MergedVoxels.prototype.canIgnore = function (map, sx, sy, sz, x, y, z) {
-        if (!map[sy][sz][sx]) return true;
-        if (map[y] && map[y][z] && map[y][z][x]) {
-            if ((typeof map[y][z][x].opacity == 'undefined' || map[y][z][x].opacity >= 1)) return true;
-            if (map[sy][sz][sx].opacity == map[y][z][x].opacity && map[sy][sz][sx].color == map[y][z][x].color) return true;
+    Voxels.prototype.canIgnore = function (map, sx, sy, sz, x, y, z) {
+        if (!map[sy] || !map[sy][sz] || typeof map[sy][sz][sx] == 'undefined') return true;
+        if (map[y] && map[y][z] && typeof map[y][z][x] != 'undefined') {
+            if (map[sy][sz][sx].color == map[y][z][x].color) return true;
         }
         // return (map[y] && map[y][z] && map[y][z][x] && (typeof map[y][z][x].opacity == 'undefined' || map[y][z][x].opacity >= 1));
         return false;
     };
-    MergedVoxels.prototype.getPointIdx = function (bound, x, y, z) { // get the first index(index 0 of the cube) of a point
+    Voxels.prototype.getPointIdx = function (bound, x, y, z) { // get the first index(index 0 of the cube) of a point
         var yy = y - bound.minY;
         var zz = z - bound.minZ;
         var xx = x - bound.minX;
@@ -336,17 +357,17 @@
         idx += xx;
         return idx * 8;
     };
-    MergedVoxels.prototype.buildAFace = function (faces, a, b, c, d, vertices, material, s, t) { // build a rect face with 2 tree triangle faces and mark the associated points
+    Voxels.prototype.buildAFace = function (faces, a, b, c, d, vertices, color, s, t) { // build a rect face with 2 tree triangle faces and mark the associated points
         // d c
         // a b
-        faces.push([a, b, c, material, s, t]);
-        faces.push([a, c, d, material, s, t]);
+        faces.push([a, b, c, color, s, t]);
+        faces.push([a, c, d, color, s, t]);
         vertices[a][3]++;
         vertices[b][3]++;
         vertices[c][3]++;
         vertices[d][3]++;
     };
-    MergedVoxels.prototype.buildFaces = function (vertices) { // build all the faces, each index of the faces is the orginal one which will be updated later
+    Voxels.prototype.buildFaces = function (vertices) { // build all the faces, each index of the faces is the orginal one which will be updated later
         var bound = this.bound;
         var map = this.map;
         var faces = [];
@@ -477,7 +498,7 @@
 
         return faces;
     };
-    MergedVoxels.prototype.buildVertices = function () { // record all points including all used and unused
+    Voxels.prototype.buildVertices = function () { // record all points including all used and unused
         var bound = this.bound;
         var width = this.width;
         var height = this.height;
@@ -509,11 +530,11 @@
         }
         return vertices;
     };
-    MergedVoxels.prototype.getCenter2 = function (min, max, step, scale) {
+    Voxels.prototype.getCenter2 = function (min, max, step, scale) {
         return min * step + (max - min) * step * scale;
         // return min + scale * (max - min) * step;
     };
-    MergedVoxels.prototype.getCenter = function (align) {
+    Voxels.prototype.getCenter = function (align) {
         var bound = this.bound;
         var width = this.width;
         var height = this.height;
@@ -580,7 +601,7 @@
         console.log(center);
         return center;
     };
-    MergedVoxels.prototype.getBound = function (map) { // caculate the bound of the blocks
+    Voxels.prototype.getBound = function (map) { // caculate the bound of the blocks
         var minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity, minX = Infinity, maxX = -Infinity;
         var y, z, x, map2, map3;
         for (y in map) {
