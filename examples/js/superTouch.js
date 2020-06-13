@@ -1,6 +1,11 @@
 (function () {
     if (typeof AFRAME == 'undefined') throw '[super touch] AFRAME should be loaded first.';
 
+    const PI = Math.PI, subPI = -PI;
+    const PI2 = Math.PI * 2, subPI2 = -PI2;
+    const PI_25 = Math.PI * 0.25;
+    const PI_5 = Math.PI * 0.5;
+
     var getRangeSchema = function (min, max) {
         return {
             default: { min: min, max: max },// #dd0000_floor,#dddd00_box
@@ -31,8 +36,31 @@
 
         init: function () {
             this.registerEvents();
+            this.system = this.el.sceneEl.systems['voxels'];
         },
-
+        handleDir: function () {
+            if (this.rotation.y <= PI_25 && this.rotation.y >= -PI_25) { // 正中
+                if (this.rotation.x >= this.data.rotationX.max * 0.333) this.system.dir = 1; // z+
+                else if (this.rotation.x <= this.data.rotationX.min * 0.333) this.system.dir = 3; // z-
+                else this.system.dir = 0;
+                // console.log('front', this.system.dir);
+            } else if (this.rotation.y > PI_25 && this.rotation.y < PI_5 + PI_25) { // 左边
+                if (this.rotation.x >= this.data.rotationX.max * 0.333) this.system.dir = 4; // x+
+                else if (this.rotation.x <= this.data.rotationX.min * 0.333) this.system.dir = 2; // x-
+                else this.system.dir = 0;
+                // console.log('left', this.system.dir);
+            } else if (this.rotation.y < -PI_25 && this.rotation.y > -PI_5 - PI_25) { // 右边
+                if (this.rotation.x >= this.data.rotationX.max * 0.333) this.system.dir = 2; // x-
+                else if (this.rotation.x <= this.data.rotationX.min * 0.333) this.system.dir = 4; // x+
+                else this.system.dir = 0;
+                // console.log('right', this.system.dir);
+            } else { // 后边
+                if (this.rotation.x >= this.data.rotationX.max * 0.333) this.system.dir = 3; // z-
+                else if (this.rotation.x <= this.data.rotationX.min * 0.333) this.system.dir = 1; // z+
+                else this.system.dir = 0;
+                // console.log('back', this.system.dir);
+            }
+        },
         registerEvents: function () {
             var touchTarget = this.touchTarget = this.data.touchTarget ? document.querySelector(this.data.touchTarget) : document;
 
@@ -59,11 +87,6 @@
 
         },
         mouseMove: (function () {
-            const PI = Math.PI, subPI = -PI;
-            const PI2 = Math.PI * 2, subPI2 = -PI2;
-            const PI_25 = Math.PI * 0.25;
-            const PI_5 = Math.PI * 0.5;
-
             var deltaX, deltaY;
 
             return function (evt) {
@@ -85,15 +108,7 @@
                     else if (this.rotation.x > this.data.rotationX.max) this.rotation.x = this.data.rotationX.max;
 
                     // console.log(this.rotation.y, this.rotation.x);
-                    if (this.rotation.y <= PI_25 && this.rotation.y >= -PI_25) { // 正中
-                        console.log('front');
-                    } else if (this.rotation.y > PI_25 && this.rotation.y < PI_5 + PI_25) { // 左边
-                        console.log('left');
-                    } else if (this.rotation.y < -PI_25 && this.rotation.y > -PI_5 - PI_25) { // 右边
-                        console.log('right');
-                    } else { // 后边
-                        console.log('back');
-                    }
+                    this.handleDir();
                 }
             }
         })(),

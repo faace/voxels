@@ -31,12 +31,14 @@
         this.width = info.width || 1;
         this.height = info.height || 1;
         this.depth = info.depth || 1;
+        this.cellSize = info.cellSize || -1;
         this.align = info.align;
         this.showFaces = info.showFaces || { front: true, back: true, left: true, right: true, top: true, bottom: true };
         return this;
     };
     Voxels.prototype.run = function (cb) {
         if (!this.bound) this.bound = this.getBound(this.map);
+        this.checkCellSize(this.bound);
         if (!this.center) this.center = this.getCenter(this.align);
         var vertices = this.buildVertices();
         var faces = this.buildFaces(vertices);
@@ -600,6 +602,11 @@
         }
         console.log(center);
         return center;
+    };
+    Voxels.prototype.checkCellSize = function (bound) {
+        if (this.cellSize > 0) {
+            this.width = this.depth = this.height = this.cellSize / Math.max((bound.maxX - bound.minX + 1), (bound.maxZ - bound.minZ + 1));
+        }
     };
     Voxels.prototype.getBound = function (map) { // caculate the bound of the blocks
         var minY = Infinity, maxY = -Infinity, minZ = Infinity, maxZ = -Infinity, minX = Infinity, maxX = -Infinity;

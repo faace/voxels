@@ -8,7 +8,6 @@
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <script src="https://faace.github.io/aFrameByCode/dist/aFrameByCode.min.js"></script>
     <script src="./js/superTouch.js"></script>
-    <!-- <script src="../dist/MergedVoxels.aframe.min.js"></script> -->
     <script src="../src/mvPly2map.js"></script>
     <script src="../src/Voxels.js"></script>
     <script src="../src/Voxels.aframe.js"></script>
@@ -26,7 +25,7 @@
 
                 var size = 0.1;
                 var entity = scene.addAnEntity('a-entity', { 'super-touch': 'rotationX:-0.5 0.5;scale:0.5 1.5', 'position': '0 0 -5' });
-                entity.addAnEntity('a-voxels', {
+                var map = entity.addAnEntity('a-voxels#map', {
                     src: '../ply/hill.ply',
                     textures: '#111111_floor3,#no_444444_floor2',
                     opacities: '#33ccff_0.6',
@@ -34,18 +33,25 @@
                     width: size,
                     height: size,
                     depth: size,
+                    type: 'map',
+                    // scale: '0.2 0.2 0.2',
+                });
+
+                var chick = entity.addAnEntity('a-voxels#chick', {
+                    src: '../ply/chick.ply',
+                    // textures: '#111111_floor3,#no_444444_floor2',
+                    // opacities: '#33ccff_0.6',
+                    align: 'center bottom center',
+                    'cell-size': size,
+                    position: '3 0 0',
+                    type: 'hero',
                     // scale: '0.2 0.2 0.2',
                 });
                 scene.addEntities({
-                    'a-entity': { camera: '', 'position': '0 1.6 0' },
-                    // 'a-plane': {
-                    //     position: '0 0 -4',
-                    //     width: 4,
-                    //     height: 4,
-                    //     rotation: '-90 0 0'
-                    // },
-                    'a-sky': { color: "#ECECEC" },
+                    'a-entity': { camera: '', 'position': '0 5.6 -2', rotation: '-45 0 0' },
+                    'a-sky': { color: "#aCaCEC" },
                 });
+
             },
         });
         AFRAME.loadScene('scene1');
