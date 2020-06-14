@@ -65,7 +65,7 @@
         mouseDown: function (evt) { // evt.type == 'touchstart'
             this.rotation = this.el.object3D.rotation;
             // console.log(evt.buttons) // 1:left, 2:right, 3:left&right,4:middle,5:left&middle, 6:right&middle, 7:left&right&middel
-            if (this.downs[evt.buttons]) return;
+            // if (this.downs[evt.buttons]) return;
             this.downs[evt.buttons] = true;
             this.clientX = evt.clientX;
             this.clientY = evt.clientY;
@@ -75,7 +75,7 @@
         },
         mouseMove: (function () {
             var deltaX, deltaY;
-            // var buttonsMap = { 1: 0, 2: 2 };
+            var step = 40;
 
             return function (evt) {
                 // console.log(evt.button, evt.buttons, this.downs);
@@ -85,33 +85,35 @@
                         case 1: { //  left
                             deltaX = evt.clientX - this.clientX;
                             deltaY = evt.clientY - this.clientY;
-                            if (Math.abs(deltaX) < 20 && Math.abs(deltaY) < 20) break;
-
+                            // console.log(deltaX, deltaY);
+                            if (Math.abs(deltaX) < step && Math.abs(deltaY) < step) break;
                             if (this.rotation.y <= PI_25 && this.rotation.y >= -PI_25) { // 正中
                                 if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
-                                    this.system.dir = (deltaX > 20) ? 2 : 4; // x+ x-
+                                    this.system.dir = (deltaX > 0) ? 2 : 4; // x+ x-
                                 } else {
-                                    this.system.dir = (deltaY > 20) ? 1 : 3; // z+ z-
+                                    this.system.dir = (deltaY > 0) ? 1 : 3; // z+ z-
                                 }
+                                console.log(1, deltaX, deltaY, this.system.dir);
                             } else if (this.rotation.y > PI_25 && this.rotation.y < PI_5 + PI_25) { // 左边
                                 if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
-                                    this.system.dir = (deltaX > 20) ? 1 : 3; // x+ x-
+                                    this.system.dir = (deltaX > 0) ? 1 : 3; // z+ z-
                                 } else {
-                                    this.system.dir = (deltaY > 20) ? 2 : 4; // z+ z-
+                                    this.system.dir = (deltaY > 0) ? 4 : 2; // x+ x-
                                 }
+                                console.log(2, deltaX, deltaY, this.system.dir);
                             } else if (this.rotation.y < -PI_25 && this.rotation.y > -PI_5 - PI_25) { // 右边
                                 if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
-                                    this.system.dir = (deltaX > 20) ? 3 : 1; // x+ x-
+                                    this.system.dir = (deltaX > 0) ? 3 : 1; // x+ x-
                                 } else {
-                                    this.system.dir = (deltaY > 20) ? 4 : 2; // z+ z-
+                                    this.system.dir = (deltaY > 0) ? 2 : 4; // z+ z-
                                 }
+                                console.log(3, deltaX, deltaY, this.system.dir);
                             } else { // 后边
                                 if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
-                                    this.system.dir = (deltaX > 20) ? 4 : 2; // x+ x-
+                                    this.system.dir = (deltaX > 0) ? 4 : 2; // x+ x-
                                 } else {
-                                    this.system.dir = (deltaY > 20) ? 3 : 1; // z+ z-
+                                    this.system.dir = (deltaY > 0) ? 3 : 1; // z+ z-
                                 }
-                                break;
                             }
                             this.clientX = evt.clientX;
                             this.clientY = evt.clientY;
@@ -190,7 +192,7 @@
                 scale.x -= this.scaleStep;
                 if (scale.x < this.data.scale.min) scale.x = this.data.scale.min;
             }
-            console.log(this.data.scale, scale.x);
+            // console.log(this.data.scale, scale.x);
             scale.y = scale.z = scale.x;
         },
         touchStart: function (evt) { // evt.type == 'touchstart'

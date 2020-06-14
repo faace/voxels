@@ -54,8 +54,9 @@ AFRAME.registerSystem('voxels', {
                 if (!m[c.y + yy - 1] || !m[c.y + yy - 1][c.z + zz] || !m[c.y + yy - 1][c.z + zz][c.x + xx]) {
                     // 再看看能否下楼
                     if (!m[c.y + yy - 2] || !m[c.y + yy - 2][c.z + zz] || !m[c.y + yy - 2][c.z + zz][c.x + xx]) return false;// 脚下没路，不能走
+                    if (m[c.y + yy - 2][c.z + zz][c.x + xx].opacity) return false; // 是水，不能进去
                     yy = -1;
-                }
+                } else if (m[c.y + yy - 1][c.z + zz][c.x + xx].opacity) return false; // 是水，不能进去
             }
 
             c.y += yy;
