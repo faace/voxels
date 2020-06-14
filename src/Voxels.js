@@ -86,7 +86,7 @@
                 for (var x in zMap) {
                     one = { color: zMap[x].color };
                     if (opacities[one.color] && opacities[one.color] < 1) one.opacity = opacities[one.color];
-                    if (textures[one.color]) one.opacity = textures[one.color];
+                    if (textures[one.color]) one.texture = textures[one.color];
                     newZMap[x - this.pCenter.x] = one;
                 }
             }

@@ -93,21 +93,18 @@
                                 } else {
                                     this.system.dir = (deltaY > 0) ? 1 : 3; // z+ z-
                                 }
-                                console.log(1, deltaX, deltaY, this.system.dir);
                             } else if (this.rotation.y > PI_25 && this.rotation.y < PI_5 + PI_25) { // 左边
                                 if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
                                     this.system.dir = (deltaX > 0) ? 1 : 3; // z+ z-
                                 } else {
                                     this.system.dir = (deltaY > 0) ? 4 : 2; // x+ x-
                                 }
-                                console.log(2, deltaX, deltaY, this.system.dir);
                             } else if (this.rotation.y < -PI_25 && this.rotation.y > -PI_5 - PI_25) { // 右边
                                 if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
                                     this.system.dir = (deltaX > 0) ? 3 : 1; // x+ x-
                                 } else {
                                     this.system.dir = (deltaY > 0) ? 2 : 4; // z+ z-
                                 }
-                                console.log(3, deltaX, deltaY, this.system.dir);
                             } else { // 后边
                                 if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
                                     this.system.dir = (deltaX > 0) ? 4 : 2; // x+ x-
@@ -157,17 +154,13 @@
                                 else if (this.rotation.z > this.data.rotationZ.max) this.rotation.z = this.data.rotationZ.max;
                             } else { // 后边
                                 deltaY = this.clientY - evt.clientY;
-                                // console.log(this.clientY, evt.clientY, deltaY);
                                 this.clientY = evt.clientY;
                                 this.rotation.x += deltaY * 0.01;
                                 while (this.rotation.x < subPI) this.rotation.x += PI2;
                                 while (this.rotation.x > PI) this.rotation.x += subPI2;
                                 if (this.rotation.x < this.data.rotationX.min) this.rotation.x = this.data.rotationX.min;
                                 else if (this.rotation.x > this.data.rotationX.max) this.rotation.x = this.data.rotationX.max;
-                                break;
                             }
-
-
                             break;
                         }
                     }

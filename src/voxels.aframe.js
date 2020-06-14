@@ -26,7 +26,7 @@ AFRAME.registerSystem('voxels', {
         this.heroMapPosition.x = x;
         this.heroMapPosition.y = y;
         this.heroMapPosition.z = z;
-        this.heroPosition.set(x * this.size, y * this.size, z * this.size);
+        this.heroPosition.set((x - 0.5) * this.size, (y - 0) * this.size, (z - 0.5) * this.size);
     },
     moveHeroPos: function (xx, yy, zz) {
         if (this.hero && this.map) {
