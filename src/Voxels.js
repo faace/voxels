@@ -39,7 +39,11 @@
     Voxels.prototype.run = function (cb) {
         if (!this.bound) this.bound = this.getBound(this.map);
         this.checkCellSize(this.bound);
-        if (!this.center) this.center = this.getCenter(this.align);
+        if (!this.center) {
+            this.center = {};
+            this.pCenter = {};
+            this.getCenter(this.align, this.center, this.pCenter);
+        }
         var vertices = this.buildVertices();
         var faces = this.buildFaces(vertices);
 
@@ -52,7 +56,7 @@
 
         var geometry = this.createGeometry(vertices, faces);
         var mesh = new THREE.Mesh(geometry, this.materials);
-        cb(false, mesh);
+        cb(false, mesh, this.centerMap(this.map));
     };
     Voxels.prototype.copyMap = function (map) {
         var newMap = {};
@@ -64,6 +68,26 @@
                 var newZMap = newYMap[z] = {};
                 for (var x in zMap) {
                     newZMap[x] = { color: zMap[x] };
+                }
+            }
+        }
+        return newMap;
+    };
+    Voxels.prototype.centerMap = function (map) {
+        var newMap = {}, one;
+        var opacities = this.opacities;
+        var textures = this.textures;
+        for (var y in map) {
+            var yMap = map[y];
+            var newYMap = newMap[y - this.pCenter.y] = {};
+            for (var z in yMap) {
+                var zMap = yMap[z];
+                var newZMap = newYMap[z - this.pCenter.z] = {};
+                for (var x in zMap) {
+                    one = { color: zMap[x].color };
+                    if (opacities[one.color] && opacities[one.color] < 1) one.opacity = opacities[one.color];
+                    if (textures[one.color]) one.opacity = textures[one.color];
+                    newZMap[x - this.pCenter.x] = one;
                 }
             }
         }
@@ -536,62 +560,79 @@
         return min * step + (max - min) * step * scale;
         // return min + scale * (max - min) * step;
     };
-    Voxels.prototype.getCenter = function (align) {
+    Voxels.prototype.getCenter = function (align, center, pCenter) {
         var bound = this.bound;
         var width = this.width;
         var height = this.height;
         var depth = this.depth;
         var scaleX, scaleY, scaleZ;
         var paddingX, paddingY, paddingZ;
-        var center = {};
         if (typeof align == 'undefined') align = 'center';
         if (typeof align == 'string') {
             align = align.trim();
             aligns = align.split(' ');
-            if (aligns.length == 3) { // same in three direct
+            if (aligns.length == 3) { // different in three direct
                 if (aligns[0] == 'left') {
                     scaleX = 0;
                     paddingX = -0.5;
+                    pCenter.x = bound.minX;
                 } else if (aligns[0] == 'right') {
                     scaleX = 1;
                     paddingX = 0.5;
+                    pCenter.x = bound.maxX;
                 } else { // center
                     scaleX = 0.5;
-                    paddingX = 0
+                    paddingX = 0;
+                    pCenter.x = bound.minX + Math.floor(0.5 * (bound.maxX - bound.minX));
                 }
                 if (aligns[1] == 'bottom') {
                     scaleY = 0;
                     paddingY = -0.5;
+                    pCenter.y = bound.minY;
                 } else if (aligns[1] == 'top') {
                     scaleY = 1;
                     paddingY = 0.5;
+                    pCenter.y = bound.maxY;
                 } else { // center
                     scaleY = 0.5;
-                    paddingY = 0
+                    paddingY = 0;
+                    pCenter.y = bound.minY + Math.floor(0.5 * (bound.maxY - bound.minY));
                 }
                 if (aligns[2] == 'back') {
                     scaleZ = 0;
                     paddingZ = -0.5;
+                    pCenter.z = bound.minZ;
                 } else if (aligns[2] == 'front') {
                     scaleZ = 1;
                     paddingZ = 0.5;
+                    pCenter.z = bound.maxZ;
                 } else { // center
                     scaleZ = 0.5;
-                    paddingZ = 0
+                    paddingZ = 0;
+                    pCenter.z = bound.minZ + Math.floor(0.5 * (bound.maxZ - bound.minZ));
                 }
             } else { // same in three direct
                 if (align == 'left') {
                     scaleX = scaleY = scaleZ = 0;
                     paddingX = paddingY = paddingZ = -0.5;
+                    pCenter.x = bound.minX;
+                    pCenter.y = bound.minY;
+                    pCenter.z = bound.minZ;
                 } else if (align == 'right') {
                     scaleX = scaleY = scaleZ = 1;
                     paddingX = paddingY = paddingZ = 0.5;
+                    pCenter.x = bound.maxX;
+                    pCenter.y = bound.maxY;
+                    pCenter.z = bound.maxZ;
                 } else { // center
                     scaleX = scaleY = scaleZ = 0.5;
-                    paddingX = paddingY = paddingZ = 0
+                    paddingX = paddingY = paddingZ = 0;
+                    pCenter.x = bound.minX + Math.floor(0.5 * (bound.maxX - bound.minX));
+                    pCenter.y = bound.minY + Math.floor(0.5 * (bound.maxY - bound.minY));
+                    pCenter.z = bound.minZ + Math.floor(0.5 * (bound.maxZ - bound.minZ));
                 }
             }
-            console.log(paddingZ, scaleZ);
+            // console.log(paddingZ, scaleZ);
             center.x = this.getCenter2(bound.minX, bound.maxX, width, scaleX) + paddingX * width;
             center.y = this.getCenter2(bound.minY, bound.maxY, height, scaleY) + paddingY * height;
             center.z = this.getCenter2(bound.minZ, bound.maxZ, depth, scaleZ) + paddingZ * depth;
@@ -600,7 +641,6 @@
             center.y = align.y;
             center.z = align.z;
         }
-        console.log(center);
         return center;
     };
     Voxels.prototype.checkCellSize = function (bound) {

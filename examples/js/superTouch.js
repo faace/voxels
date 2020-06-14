@@ -6,21 +6,22 @@
     const PI_25 = Math.PI * 0.25;
     const PI_5 = Math.PI * 0.5;
 
-    var getRangeSchema = function (min, max) {
+    var getRangeSchema = function (min, max, scale) {
+        scale = scale || 1;
         return {
             default: { min: min, max: max },// #dd0000_floor,#dddd00_box
             parse: function (value) {
                 var t = { min: min, max: max };
                 if (typeof value == 'string') {
                     var list = value.trim().split(' ');
-                    var l0 = parseFloat(list[0]), l1 = parseFloat(list[1]);
+                    var l0 = parseFloat(list[0] * scale), l1 = parseFloat(list[1] * scale);
                     t.min = Math.min(l0, l1);
                     t.max = Math.max(l0, l1);
                 }
                 return t;
             },
             stringify: function (value) {
-                return value.min + ' ' + value.max;
+                return (value.min / scale) + ' ' + (value.max / scale);
             }
         };
     };
@@ -29,47 +30,30 @@
 
         schema: {
             touchTarget: { type: 'string' },
-            rotationY: getRangeSchema(-Math.PI, Math.PI),
-            rotationX: getRangeSchema(-Math.PI, Math.PI),
-            scale: getRangeSchema(0.01, 2),
+            rotationY: getRangeSchema(-Math.PI, Math.PI, PI / 180),
+            rotationX: getRangeSchema(-Math.PI, Math.PI, PI / 180),
+            scale: getRangeSchema(0.01, 2, 1),
         },
 
         init: function () {
             this.registerEvents();
             this.system = this.el.sceneEl.systems['voxels'];
+            this.scaleStep = (this.data.scale.max - this.data.scale.min) * 0.1;
         },
-        handleDir: function () {
-            if (this.rotation.y <= PI_25 && this.rotation.y >= -PI_25) { // 正中
-                if (this.rotation.x >= this.data.rotationX.max * 0.333) this.system.dir = 1; // z+
-                else if (this.rotation.x <= this.data.rotationX.min * 0.333) this.system.dir = 3; // z-
-                else this.system.dir = 0;
-                // console.log('front', this.system.dir);
-            } else if (this.rotation.y > PI_25 && this.rotation.y < PI_5 + PI_25) { // 左边
-                if (this.rotation.x >= this.data.rotationX.max * 0.333) this.system.dir = 4; // x+
-                else if (this.rotation.x <= this.data.rotationX.min * 0.333) this.system.dir = 2; // x-
-                else this.system.dir = 0;
-                // console.log('left', this.system.dir);
-            } else if (this.rotation.y < -PI_25 && this.rotation.y > -PI_5 - PI_25) { // 右边
-                if (this.rotation.x >= this.data.rotationX.max * 0.333) this.system.dir = 2; // x-
-                else if (this.rotation.x <= this.data.rotationX.min * 0.333) this.system.dir = 4; // x+
-                else this.system.dir = 0;
-                // console.log('right', this.system.dir);
-            } else { // 后边
-                if (this.rotation.x >= this.data.rotationX.max * 0.333) this.system.dir = 3; // z-
-                else if (this.rotation.x <= this.data.rotationX.min * 0.333) this.system.dir = 1; // z+
-                else this.system.dir = 0;
-                // console.log('back', this.system.dir);
-            }
-        },
+
         registerEvents: function () {
             var touchTarget = this.touchTarget = this.data.touchTarget ? document.querySelector(this.data.touchTarget) : document;
 
             if (touchTarget) {
                 if (this.isPC()) {
+                    this.downs = [false, false, false];
+
                     touchTarget.addEventListener('mousedown', this.mouseDown.bind(this));
                     touchTarget.addEventListener('mousemove', this.mouseMove.bind(this));
                     touchTarget.addEventListener('mouseup', this.mouseUp.bind(this));
                     touchTarget.addEventListener('mousewheel', this.mouseWheel.bind(this));
+
+                    document.oncontextmenu = function () { return false; }
                 } else {
                     touchTarget.addEventListener('touchstart', this.touchStart.bind(this));
                     touchTarget.addEventListener('touchmove', this.touchMove.bind(this));
@@ -80,49 +64,130 @@
         },
         mouseDown: function (evt) { // evt.type == 'touchstart'
             this.rotation = this.el.object3D.rotation;
-            if (this.isDown) return;
-            this.isDown = true;
+            // console.log(evt.buttons) // 1:left, 2:right, 3:left&right,4:middle,5:left&middle, 6:right&middle, 7:left&right&middel
+            if (this.downs[evt.buttons]) return;
+            this.downs[evt.buttons] = true;
             this.clientX = evt.clientX;
             this.clientY = evt.clientY;
-
+            evt.stopPropagation();
+            evt.preventDefault();
+            // console.log(evt.button, this.downs[evt.button]);
         },
         mouseMove: (function () {
             var deltaX, deltaY;
+            // var buttonsMap = { 1: 0, 2: 2 };
 
             return function (evt) {
-                if (this.isDown) {
-                    deltaX = evt.clientX - this.clientX;
-                    this.clientX += deltaX;
-                    this.rotation.y += deltaX * 0.01;
-                    while (this.rotation.y < subPI) this.rotation.y += PI2;
-                    while (this.rotation.y > PI) this.rotation.y += subPI2;
-                    if (this.rotation.y < this.data.rotationY.min) this.rotation.y = this.data.rotationY.min;
-                    else if (this.rotation.y > this.data.rotationY.max) this.rotation.y = this.data.rotationY.max;
+                // console.log(evt.button, evt.buttons, this.downs);
+                if (this.downs[evt.buttons]) {
+                    // console.log(evt.buttons);
+                    switch (evt.buttons) {
+                        case 1: { //  left
+                            deltaX = evt.clientX - this.clientX;
+                            deltaY = evt.clientY - this.clientY;
+                            if (Math.abs(deltaX) < 20 && Math.abs(deltaY) < 20) break;
 
-                    deltaY = evt.clientY - this.clientY;
-                    this.clientY += deltaY;
-                    this.rotation.x += deltaY * 0.01;
-                    while (this.rotation.y < subPI) this.rotation.y += PI2;
-                    while (this.rotation.y > PI) this.rotation.y += subPI2;
-                    if (this.rotation.x < this.data.rotationX.min) this.rotation.x = this.data.rotationX.min;
-                    else if (this.rotation.x > this.data.rotationX.max) this.rotation.x = this.data.rotationX.max;
+                            if (this.rotation.y <= PI_25 && this.rotation.y >= -PI_25) { // 正中
+                                if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
+                                    this.system.dir = (deltaX > 20) ? 2 : 4; // x+ x-
+                                } else {
+                                    this.system.dir = (deltaY > 20) ? 1 : 3; // z+ z-
+                                }
+                            } else if (this.rotation.y > PI_25 && this.rotation.y < PI_5 + PI_25) { // 左边
+                                if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
+                                    this.system.dir = (deltaX > 20) ? 1 : 3; // x+ x-
+                                } else {
+                                    this.system.dir = (deltaY > 20) ? 2 : 4; // z+ z-
+                                }
+                            } else if (this.rotation.y < -PI_25 && this.rotation.y > -PI_5 - PI_25) { // 右边
+                                if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
+                                    this.system.dir = (deltaX > 20) ? 3 : 1; // x+ x-
+                                } else {
+                                    this.system.dir = (deltaY > 20) ? 4 : 2; // z+ z-
+                                }
+                            } else { // 后边
+                                if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
+                                    this.system.dir = (deltaX > 20) ? 4 : 2; // x+ x-
+                                } else {
+                                    this.system.dir = (deltaY > 20) ? 3 : 1; // z+ z-
+                                }
+                                break;
+                            }
+                            this.clientX = evt.clientX;
+                            this.clientY = evt.clientY;
+                            break;
+                        }
+                        case 2: { // right
+                            deltaX = evt.clientX - this.clientX;
+                            this.clientX = evt.clientX;
+                            this.rotation.y += deltaX * 0.01;
+                            while (this.rotation.y < subPI) this.rotation.y += PI2;
+                            while (this.rotation.y > PI) this.rotation.y += subPI2;
+                            if (this.rotation.y < this.data.rotationY.min) this.rotation.y = this.data.rotationY.min;
+                            else if (this.rotation.y > this.data.rotationY.max) this.rotation.y = this.data.rotationY.max;
 
-                    // console.log(this.rotation.y, this.rotation.x);
-                    this.handleDir();
+
+
+                            if (this.rotation.y <= PI_25 && this.rotation.y >= -PI_25) { // 正中
+                                deltaY = evt.clientY - this.clientY;
+                                this.clientY = evt.clientY;
+                                this.rotation.x += deltaY * 0.01;
+                                while (this.rotation.x < subPI) this.rotation.x += PI2;
+                                while (this.rotation.x > PI) this.rotation.x += subPI2;
+                                if (this.rotation.x < this.data.rotationX.min) this.rotation.x = this.data.rotationX.min;
+                                else if (this.rotation.x > this.data.rotationX.max) this.rotation.x = this.data.rotationX.max;
+
+                            } else if (this.rotation.y > PI_25 && this.rotation.y < PI_5 + PI_25) { // 左边
+                                deltaY = evt.clientY - this.clientY;
+                                this.clientY = evt.clientY;
+                                this.rotation.z += deltaY * 0.01;
+                                while (this.rotation.z < subPI) this.rotation.z += PI2;
+                                while (this.rotation.z > PI) this.rotation.z += subPI2;
+                                if (this.rotation.z < this.data.rotationZ.min) this.rotation.z = this.data.rotationZ.min;
+                                else if (this.rotation.z > this.data.rotationZ.max) this.rotation.z = this.data.rotationZ.max;
+                            } else if (this.rotation.y < -PI_25 && this.rotation.y > -PI_5 - PI_25) { // 右边
+                                deltaY = this.clientY - evt.clientY;
+                                this.clientY = evt.clientY;
+                                this.rotation.z += deltaY * 0.01;
+                                while (this.rotation.z < subPI) this.rotation.z += PI2;
+                                while (this.rotation.z > PI) this.rotation.z += subPI2;
+                                if (this.rotation.z < this.data.rotationZ.min) this.rotation.z = this.data.rotationZ.min;
+                                else if (this.rotation.z > this.data.rotationZ.max) this.rotation.z = this.data.rotationZ.max;
+                            } else { // 后边
+                                deltaY = this.clientY - evt.clientY;
+                                // console.log(this.clientY, evt.clientY, deltaY);
+                                this.clientY = evt.clientY;
+                                this.rotation.x += deltaY * 0.01;
+                                while (this.rotation.x < subPI) this.rotation.x += PI2;
+                                while (this.rotation.x > PI) this.rotation.x += subPI2;
+                                if (this.rotation.x < this.data.rotationX.min) this.rotation.x = this.data.rotationX.min;
+                                else if (this.rotation.x > this.data.rotationX.max) this.rotation.x = this.data.rotationX.max;
+                                break;
+                            }
+
+
+                            break;
+                        }
+                    }
                 }
+                evt.stopPropagation();
+                evt.preventDefault();
             }
         })(),
         mouseUp: function (evt) {
-            this.isDown = false;
+            this.system.dir = 0;
+            this.downs[evt.button] = false;
+            evt.stopPropagation();
+            evt.preventDefault();
         },
         mouseWheel: function (evt) {
 
             var scale = this.el.object3D.scale;
             if (evt.wheelDelta > 0) { // 向上滚，变大
-                scale.x += 0.01;
+                scale.x += this.scaleStep;
                 if (scale.x > this.data.scale.max) scale.x = this.data.scale.max;
             } else {
-                scale.x -= 0.01;
+                scale.x -= this.scaleStep;
                 if (scale.x < this.data.scale.min) scale.x = this.data.scale.min;
             }
             console.log(this.data.scale, scale.x);

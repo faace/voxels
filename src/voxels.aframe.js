@@ -1,40 +1,75 @@
 AFRAME.registerSystem('voxels', {
     init: function () {
-        this.targets = {};
-        this.pos = {};
         this.size = 0.1;
         this.dir = 0; // 1 2 3 4 z+ x+ z- x-
         this.ms = 0;
     },
-    addType: function (type, target) {
+    addType: function (type, target, map) {
         if (!type) return;
-
-        this.targets[type] = target;
-        this.pos[type] = target.el.object3D.position;
-
-        if (type == 'hero') {
-            this.hero = target;
-            this.heroPosition = target.el.object3D.position;
-            this.heroRotation = target.el.object3D.rotation;
-            this.setHeroPos(9, 8, 8);
+        switch (type) {
+            case 'map': {
+                console.log(map);
+                this.map = map;
+                break;
+            }
+            case 'hero': {
+                this.hero = target;
+                this.heroMapPosition = { x: 0, y: 0, z: 0 };
+                this.heroPosition = target.el.object3D.position;
+                this.heroRotation = target.el.object3D.rotation;
+                this.setHeroPos(9, 8, 8);
+                break;
+            }
         }
     },
     setHeroPos: function (x, y, z) {
-        this.hero.xx = x;
-        this.hero.yy = y;
-        this.hero.zz = z;
+        this.heroMapPosition.x = x;
+        this.heroMapPosition.y = y;
+        this.heroMapPosition.z = z;
         this.heroPosition.set(x * this.size, y * this.size, z * this.size);
+    },
+    moveHeroPos: function (xx, yy, zz) {
+        if (this.hero && this.map) {
+
+            var m = this.map;
+            var c = this.heroMapPosition;
+            xx = xx || 0;
+            yy = yy || 0;
+            zz = zz || 0;
+
+            // if (xx) {
+            //     this.chickRotation.y = (xx > 0 ? 0.5 : -0.5) * Math.PI;
+            // } else if (zz) {
+            //     this.chickRotation.y = (zz > 0 ? 0 : 1) * Math.PI;
+            // }
+
+            if (m[c.y + yy] && m[c.y + yy][c.z + zz] && m[c.y + yy][c.z + zz][c.x + xx]) { // 要去的地方有阻碍
+                if (m[c.y + yy + 1] && m[c.y + yy + 1][c.z + zz] && m[c.y + yy + 1][c.z + zz][c.x + xx]) { // 上面走不了
+                    return;
+                } else { // 可以向上
+                    if (m[c.y + 1] && m[c.y + 1][c.z] && m[c.y + 1][c.z][c.x]) return; // 如果头顶有定西，就无法向上
+                    yy = 1;
+                }
+            } else { // 需要判断脚下有没有路，有才能走
+                if (!m[c.y + yy - 1] || !m[c.y + yy - 1][c.z + zz] || !m[c.y + yy - 1][c.z + zz][c.x + xx]) {
+                    // 再看看能否下楼
+                    if (!m[c.y + yy - 2] || !m[c.y + yy - 2][c.z + zz] || !m[c.y + yy - 2][c.z + zz][c.x + xx]) return false;// 脚下没路，不能走
+                    yy = -1;
+                }
+            }
+
+            c.y += yy;
+            this.heroPosition.y += yy * this.size;
+
+            c.z += zz;
+            this.heroPosition.z += zz * this.size;
+
+            c.x += xx;
+            this.heroPosition.x += xx * this.size;
+        }
     },
     setHeroRotation: function (angle) {
         this.heroRotation.y = Math.PI * angle / 180;
-    },
-    moveHeroPos: function (mx, my, mz) {
-        if (this.hero) {
-            this.hero.xx += mx;
-            this.hero.ty += my;
-            this.hero.zz += mz;
-            this.setHeroPos(this.hero.xx, this.hero.yy, this.hero.zz);
-        }
     },
     tick: function (ms, dms) {
         this.ms += dms;
@@ -156,12 +191,12 @@ AFRAME.registerComponent('voxels', {
                 depth: data.depth,
                 cellSize: data['cell-size'],
             };
-            var colors = mvPly2Map.getAllColors(data.map);
-            console.log(colors);
+            // var colors = mvPly2Map.getAllColors(data.map);
+            // console.log(colors);
 
-            new Voxels(info).run(function (error, mesh) {
+            new Voxels(info).run(function (error, mesh, map) {
                 this.el.setObject3D('mesh', mesh);
-                if (this.data.type) this.system.addType(this.data.type, this);
+                if (this.data.type) this.system.addType(this.data.type, this, map);
             }.bind(this));
 
 
