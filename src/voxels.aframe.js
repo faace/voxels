@@ -92,9 +92,9 @@
             var cell = this.map[this.heroMapPosition.y - 1][this.heroMapPosition.z][this.heroMapPosition.x];
             if (this.teleports[cell.color]) {
                 this.status = STATUS_TELEPROT;
-                this.hero.animFadeOut(1, function () {
+                this.animFadeOut(1, function () {
                     this.setHeroPos(this.teleports[cell.color].x, this.teleports[cell.color].y + 1, this.teleports[cell.color].z);
-                    this.hero.animFadeIn(1, function () {
+                    this.animFadeIn(1, function () {
                         this.status = STATUS_MOVE;
                     }.bind(this))
                 }.bind(this))
@@ -120,6 +120,18 @@
                 }
             }
             console.log(this.teleports);
+        },
+        animFadeOut: function (dur, cb) {
+            if (!AFRAME.anim) return cb();
+            this.anim = AFRAME.anim(this.hero.el);
+            this.anim.fadeOut(dur, cb);
+            this.anim.run();
+        },
+        animFadeIn: function (dur, cb) {
+            if (!AFRAME.anim) return cb();
+            this.anim = AFRAME.anim(this.hero.el);
+            this.anim.fadeIn(dur, cb);
+            this.anim.run();
         },
         tick: function (ms, dms) {
             switch (this.status) {
@@ -156,6 +168,8 @@
                     break;
                 }
             }
+
+            if (this.anim) this.anim.tick(dms);
         },
     });
 
@@ -300,66 +314,9 @@
 
             }
         },
-        startAnim: function (config) {
-            this.time = 0;
-            this.animation = AFRAME.ANIME(config);
-            this.animIsPlaying = true;
-        },
-        animFadeOut: function (dur, cb) {
-            var config = this.getDefaultConfig({ dur: dur }, cb);
 
-            // opacity need transparent is set to true;
-            var m = this.el.object3DMap.mesh.material;
-            if (Array.isArray(m)) m.forEach(function (one) { one.transparent = true; })
-            else m.transparent = true;
 
-            config.opacity = [1, 0];
-            config.targets = m;
 
-            this.startAnim(config);
-        },
-        animFadeIn: function (dur, cb) {
-            var config = this.getDefaultConfig({ dur: dur }, cb);
-
-            // opacity need transparent is set to true;
-            var m = this.el.object3DMap.mesh.material;
-            if (Array.isArray(m)) m.forEach(function (one) { one.transparent = true; })
-            else m.transparent = true;
-
-            config.opacity = [0, 1];
-            config.targets = m;
-
-            this.startAnim(config);
-        },
-
-        getDefaultConfig: function (conf, cb) {
-            var self = this;
-            var config = {
-                autoplay: false,
-                direction: 'normal',
-                duration: 1000, // dur;
-                easing: 'easeInOutQuad',
-                elasticity: 400,
-                loop: 0,
-                round: false,
-                complete: function () {
-                    self.animIsPlaying = false;
-                    cb();
-                }
-            };
-
-            for (var i in conf) {
-                if (typeof conf != 'undefined') config[i] = conf[i];
-            }
-            return config
-        },
-
-        tick: function (t, dt) {
-            if (this.animIsPlaying) {
-                this.time += dt;
-                this.animation.tick(this.time);
-            }
-        },
     });
 
     AFRAME.registerPrimitive('a-voxels', {
