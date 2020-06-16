@@ -1,8 +1,8 @@
 (function () {
     var mvPly2Map = {};
-    if (typeof module == 'object') module.exports = mvPly2Map;
-    else if (typeof window != 'undefined') window.mvPly2Map = mvPly2Map;
-    else if (typeof global != 'undefined') global.mvPly2Map = mvPly2Map;
+
+    if (typeof window != 'undefined') window.mvPly2Map = mvPly2Map;
+    else if (typeof module == 'object') module.exports = mvPly2Map;
 
     var _getColor = function (r, g, b) {
         r = r.toString(16);

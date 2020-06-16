@@ -3,8 +3,8 @@ const path = require('path');
 module.exports = {
     // mode: "production", // development
     entry: {
-        'MergedVoxels.aframe.min': ['./src/MergedVoxels.js', './src/MergedVoxels.aframe'],
-        'MergedVoxels.min': ['./src/MergedVoxels.js'],
+        'voxels.aframe.min': ['./src/mvPly2Map.js', './src/Voxels.js', './src/voxels.aframe.js'],
+        'Voxels.min': ['./src/Voxels.js'],
     },
     output: {
         path: path.join(__dirname, '/dist'),

@@ -38,6 +38,7 @@
 
         init: function () {
             this.registerEvents();
+            this.system = this.el.sceneEl.systems['voxels'];
             this.scaleStep = (this.data.scale.max - this.data.scale.min) * 0.1;
         },
 
@@ -82,6 +83,40 @@
                 if (this.downs[evt.buttons]) {
                     // console.log(evt.buttons);
                     switch (evt.buttons) {
+                        case 1: { //  left
+                            deltaX = evt.clientX - this.clientX;
+                            deltaY = evt.clientY - this.clientY;
+                            // console.log(deltaX, deltaY);
+                            if (Math.abs(deltaX) < step && Math.abs(deltaY) < step) break;
+                            if (this.rotation.y <= PI_25 && this.rotation.y >= -PI_25) { // 正中
+                                if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
+                                    this.system.dir = (deltaX > 0) ? 2 : 4; // x+ x-
+                                } else {
+                                    this.system.dir = (deltaY > 0) ? 1 : 3; // z+ z-
+                                }
+                            } else if (this.rotation.y > PI_25 && this.rotation.y < PI_5 + PI_25) { // 左边
+                                if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
+                                    this.system.dir = (deltaX > 0) ? 1 : 3; // z+ z-
+                                } else {
+                                    this.system.dir = (deltaY > 0) ? 4 : 2; // x+ x-
+                                }
+                            } else if (this.rotation.y < -PI_25 && this.rotation.y > -PI_5 - PI_25) { // 右边
+                                if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
+                                    this.system.dir = (deltaX > 0) ? 3 : 1; // x+ x-
+                                } else {
+                                    this.system.dir = (deltaY > 0) ? 2 : 4; // z+ z-
+                                }
+                            } else { // 后边
+                                if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
+                                    this.system.dir = (deltaX > 0) ? 4 : 2; // x+ x-
+                                } else {
+                                    this.system.dir = (deltaY > 0) ? 3 : 1; // z+ z-
+                                }
+                            }
+                            this.clientX = evt.clientX;
+                            this.clientY = evt.clientY;
+                            break;
+                        }
                         case 2: { // right
                             deltaX = evt.clientX - this.clientX;
                             this.clientX = evt.clientX;
@@ -136,6 +171,7 @@
             }
         })(),
         mouseUp: function (evt) {
+            this.system.dir = 0;
             this.downs[evt.button] = false;
             evt.stopPropagation();
             evt.preventDefault();
