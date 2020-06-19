@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>custom geometry</title>
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <script src="https://faace.github.io/aFrameByCode/dist/aFrameByCode.min.js"></script>
+    <script src="./js/superTouchForVoxels.js"></script>
+    <script src="../src/mvPly2Map.js"></script>
+    <script src="../src/Voxels.js"></script>
+    <script src="../src/Voxels.aframe.js"></script>
+</head>
+
+<body>
+    <script>
+        AFRAME.createAScene({
+            id: 'scene1',
+            createFlashItem: function (father, map, position, size, anim, faces) {
+                var item1 = father.addAnEntity('a-voxels#mapWater', {
+                    map: map,
+                    opacities: '#ffffff_0.6',
+                    align: 'center bottom center',
+                    width: size,
+                    height: size,
+                    depth: size,
+                    position: position,
+                    type: 'item',
+                    faces: faces,
+                });
+
+
+                item1.animRun(anim)
+            },
+            onInit: function (scene) {
+                scene.assets.addList({
+                    'img#floor2': './img/floor2.jpg',
+                    'img#floor3': './img/floor3.jpg',
+                });
+
+                var size = 0.1;
+                var entity = scene.addAnEntity('a-entity', { 'super-touch': 'rotationX:-30 30;rotationZ:-30 30;scale:0.5 1.5', 'position': '0 -3 -3', rotation: '0 0 0' });
+                var map = entity.addAnEntity('a-voxels#map', {
+                    src: '../ply/hill2.ply',
+                    textures: '#111111_floor3,#no_444444_floor2',
+                    opacities: '#0099ff_0.6',
+                    align: 'center bottom center',
+                    width: size,
+                    height: size,
+                    depth: size,
+                    type: 'map',
+                    // scale: '0.2 0.2 0.2',
+                });
+
+
+                var flashAnim = AFRAME.anim();
+                flashAnim.colorTo(100, '#0099ff').reverse().repeatForever();
+
+                var flashColor = "#ffffff";
+                var flashItemMaps = {
+                    a: JSON.stringify({
+                        1: { 0: { 0: flashColor } },
+                        0: { 0: { 0: flashColor } },
+                    }),
+                    b: JSON.stringify({
+                        3: { 0: { 1: flashColor } },
+                        2: { 0: { 0: flashColor, 1: flashColor } },
+                        1: { 0: { 0: flashColor } },
+                        0: { 0: { 0: flashColor } },
+                    }),
+                    c: JSON.stringify({
+                        0: {
+                            1: { 0: flashColor },
+                            2: { 0: flashColor, 1: flashColor, 3: flashColor, 4: flashColor },
+                            3: { 1: flashColor, 2: flashColor, 3: flashColor },
+                            4: { 2: flashColor, 3: flashColor },
+                            5: { 3: flashColor },
+                        },
+                    }),
+                    d: JSON.stringify({
+                        0: {
+                            1: { 0: flashColor },
+                            2: { 0: flashColor },
+                            3: { 0: flashColor },
+                        },
+                    }),
+                }
+                var map2 = JSON.stringify({
+                    0: { 0: { 0: flashColor } },
+                    1: { 0: { 0: flashColor } }
+                });
+
+
+
+                this.createFlashItem(entity, flashItemMaps.a, '0 16 -8', size, flashAnim, 'front');
+                this.createFlashItem(entity, flashItemMaps.a, '1 5 -8', size, flashAnim, 'front');
+                this.createFlashItem(entity, flashItemMaps.b, '0.5 10 -8', size, flashAnim, 'front');
+                this.createFlashItem(entity, flashItemMaps.c, '1 2 -5', size, flashAnim, 'top');
+                this.createFlashItem(entity, flashItemMaps.d, '-2 2 -2', size, flashAnim, 'top');
+                this.createFlashItem(entity, flashItemMaps.d, '4 2 -1', size, flashAnim, 'top');
+                this.createFlashItem(entity, flashItemMaps.d, '-4 2 4', size, flashAnim, 'top');
+                this.createFlashItem(entity, flashItemMaps.d, '-1 2 3', size, flashAnim, 'top');
+                this.createFlashItem(entity, flashItemMaps.d, '0 2 2', size, flashAnim, 'top');
+
+
+                // var chick = entity.addAnEntity('a-voxels#chick', {
+                //     src: '../ply/chick.ply',
+                //     // textures: '#111111_floor3,#no_444444_floor2',
+                //     // opacities: '#33ccff_0.6',
+                //     align: 'center bottom center',
+                //     'cell-size': size,
+                //     position: '10 8 9',
+                //     type: 'hero',
+                //     // scale: '0.2 0.2 0.2',
+                // });
+                scene.addEntities({
+                    'a-entity': { camera: '', 'position2': '0 5.6 -2', rotation: '-25 0 0' },
+                    'a-sky': { color: "#aCaCEC" },
+                });
+
+            },
+        });
+        AFRAME.loadScene('scene1');
+
+    </script>
+</body>
+
+</html>

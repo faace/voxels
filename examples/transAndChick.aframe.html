@@ -9,7 +9,7 @@
     <script src="https://faace.github.io/aFrameByCode/dist/aFrameByCode.min.js"></script>
     <script src="./js/superTouchForVoxels.js"></script>
     <script src="../src/mvPly2Map.js"></script>
-    <script src="../src/Anim.js"></script>
+    <!-- <script src="../src/Anim.js"></script> -->
     <script src="../src/Voxels.js"></script>
     <script src="../src/Voxels.aframe.js"></script>
 </head>
@@ -28,7 +28,7 @@
                 var entity = scene.addAnEntity('a-entity', {
                     'super-touch': 'rotationX:-30 30;rotationZ:-30 30;scale:0.5 1.5',
                     'voxels-sys': 'teleports:#cc0099_#0033ff,#ff0000_#ffff00,#33ff00_#cc0099',
-                    position: '0 -3 -5',
+                    position: '0 -3 -3',
                     rotation: '0 0 0'
                 });
                 var map = entity.addAnEntity('a-voxels#map', {
@@ -40,18 +40,14 @@
                     height: size,
                     depth: size,
                     type: 'map',
-                    // scale: '0.2 0.2 0.2',
                 });
 
                 var chick = entity.addAnEntity('a-voxels#chick', {
                     src: '../ply/chick.ply',
-                    // textures: '#111111_floor3,#no_444444_floor2',
-                    // opacities: '#33ccff_0.6',
                     align: 'center bottom center',
                     'cell-size': size,
-                    position: '-2 1 1',
+                    position: '-6 2 5',
                     type: 'hero',
-                    // scale: '0.2 0.2 0.2',
                 });
                 scene.addEntities({
                     'a-entity': { camera: '', 'position2': '0 5.6 -2', rotation: '-25 0 0' },

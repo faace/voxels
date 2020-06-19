@@ -31,6 +31,10 @@
                     this.setHeroPos(this.heroPosition.x, this.heroPosition.y, this.heroPosition.z);
                     break;
                 }
+                case 'item': {
+                    this.setTargetPos(target, target.el.object3D.position);
+                    break;
+                }
             }
         },
         setHeroPos: function (x, y, z) {
@@ -43,6 +47,9 @@
             this.heroMapPosition.y = y;
             this.heroMapPosition.z = z;
             this.heroPosition.set((x - 0.5) * this.size, (y - 0) * this.size, (z - 0.5) * this.size);
+        },
+        setTargetPos: function (target, pos) {
+            target.el.object3D.position.set((pos.x - 0.5) * this.size, (pos.y - 0) * this.size, (pos.z - 0.5) * this.size);
         },
         moveHeroPos: function (xx, yy, zz) {
             if (this.hero && this.map) {
@@ -92,13 +99,27 @@
             var cell = this.map[this.heroMapPosition.y - 1][this.heroMapPosition.z][this.heroMapPosition.x];
             if (this.teleports[cell.color]) {
                 this.status = STATUS_TELEPROT;
-                this.animFadeOut(1, function () {
-                    this.setHeroPos(this.teleports[cell.color].x, this.teleports[cell.color].y + 1, this.teleports[cell.color].z);
-                    this.animFadeIn(1, function () {
-                        this.status = STATUS_MOVE;
-                    }.bind(this))
-                }.bind(this))
 
+                var anim = AFRAME.anim();
+                anim.sequence(
+                    anim.spawn(
+                        anim.fadeOut(1000),
+                        anim.moveBy(1000, { x: 0, y: this.size, z: 0 }),
+                    ),
+                    anim.cb(function () {
+                        this.setHeroPos(this.teleports[cell.color].x, this.teleports[cell.color].y + 1, this.teleports[cell.color].z);
+                    }.bind(this)),
+                    anim.moveBy(1, { x: 0, y: this.size, z: 0 }),
+                    anim.spawn(
+                        anim.fadeIn(1000),
+                        anim.moveBy(1000, { x: 0, y: -this.size, z: 0 }),
+                    ),
+                    anim.cb(function () {
+                        this.status = STATUS_MOVE;
+                    }.bind(this)),
+                );
+
+                this.hero.el.animRun(anim);
             }
         },
         updateTeleports: function () { // find all the end port
@@ -121,18 +142,44 @@
             }
             console.log(this.teleports);
         },
-        animFadeOut: function (dur, cb) {
-            if (!AFRAME.anim) return cb();
-            this.anim = AFRAME.anim(this.hero.el);
-            this.anim.fadeOut(dur, cb);
-            this.anim.run();
-        },
-        animFadeIn: function (dur, cb) {
-            if (!AFRAME.anim) return cb();
-            this.anim = AFRAME.anim(this.hero.el);
-            this.anim.fadeIn(dur, cb);
-            this.anim.run();
-        },
+        // animFadeOut: function (dur, cb) {
+
+        //     if (!AFRAME.anim) return cb();
+        //     var anim = AFRAME.anim();
+        //     anim.spawn(
+        //         anim.fadeOut(1000),
+        //         anim.moveBy(1000, { x: 0, y: this.size, z: 0 }),
+        //         anim.cb(function () {
+        //             console.log('yes');
+        //         })
+        //     )
+        //     this.hero.el.animRun(anim);
+
+        //     // // this.anim.fadeOut(dur, cb);
+        //     // var a = new THREE.Vector3();
+        //     // a.copy(this.hero.el.object3D.position);
+        //     // a.y += 2;
+        //     // this.anim.move(dur, this.hero.el.object3D.position, a, function () { });
+
+        //     // this.anim.run();
+
+
+        //     // var anim = AFRAME.anim();
+        //     // anim.repeatForever(
+        //     //     anim.sequence(
+        //     //         anim.fadeIn(),
+        //     //         anim.move(),
+        //     //         anim.cb(cb),
+        //     //     ));
+        //     // this.hero.el.run(anim)
+
+        // },
+        // animFadeIn: function (dur, cb) {
+        //     if (!AFRAME.anim) return cb();
+        //     this.anim = AFRAME.anim(this.hero.el);
+        //     this.anim.fadeIn(dur, cb);
+        //     this.anim.run();
+        // },
         tick: function (ms, dms) {
             switch (this.status) {
                 case STATUS_MOVE: {
@@ -169,7 +216,7 @@
                 }
             }
 
-            if (this.anim) this.anim.tick(dms);
+            // if (this.anim) this.anim.tick(dms);
         },
     });
 
@@ -278,6 +325,33 @@
                     return txt;
                 }
             },
+            faces: {
+                default: { front: true, back: true, left: true, right: true, top: true, bottom: true },
+                parse: function (value) {
+                    var t;
+                    if (typeof value == 'string') {
+                        var list = value.trim().split(',');
+                        if (list.length > 0) {
+                            t = {};
+                            list.forEach(function (one) {
+                                t[one.trim()] = true;
+                            })
+                        }
+                    }
+
+                    return t || this.default;;
+                },
+                stringify: function (value) {
+                    var txt = '';
+                    if (value) {
+                        for (var i in value) {
+                            if (txt) txt += ',';
+                            txt += i;
+                        }
+                    }
+                    return txt;
+                }
+            },
             type: { type: 'string', default: '' },
         },
 
@@ -292,6 +366,7 @@
         },
         cteateMesh: function () {
             if (this.data.map) {
+                if (typeof this.data.map == 'string') this.data.map = JSON.parse(this.data.map);
                 var data = this.data;
                 var info = {
                     align: data.align,
@@ -302,6 +377,7 @@
                     height: data.height,
                     depth: data.depth,
                     cellSize: data['cell-size'],
+                    showFaces: data.faces
                 };
                 var colors = mvPly2Map.getAllColors(data.map);
                 console.log(colors);
@@ -335,6 +411,7 @@
             textures: 'voxels.textures',
             opacities: 'voxels.opacities',
             type: 'voxels.type',
+            faces: 'voxels.faces',
         }
     });
 })();
