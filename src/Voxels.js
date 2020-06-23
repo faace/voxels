@@ -582,7 +582,7 @@
                     pCenter.x = bound.maxX;
                 } else { // center
                     scaleX = 0.5;
-                    paddingX = 0;
+                    paddingX = ((bound.maxX - bound.minX) % 2 == 0) ? 0 : -0.5;
                     pCenter.x = bound.minX + Math.floor(0.5 * (bound.maxX - bound.minX));
                 }
                 if (aligns[1] == 'bottom') {
@@ -595,7 +595,7 @@
                     pCenter.y = bound.maxY;
                 } else { // center
                     scaleY = 0.5;
-                    paddingY = 0;
+                    paddingY = ((bound.maxY - bound.minY) % 2 == 0) ? 0 : -0.5;
                     pCenter.y = bound.minY + Math.floor(0.5 * (bound.maxY - bound.minY));
                 }
                 if (aligns[2] == 'back') {
@@ -608,7 +608,7 @@
                     pCenter.z = bound.maxZ;
                 } else { // center
                     scaleZ = 0.5;
-                    paddingZ = 0;
+                    paddingZ = ((bound.maxZ - bound.minZ) % 2 == 0) ? 0 : -0.5;
                     pCenter.z = bound.minZ + Math.floor(0.5 * (bound.maxZ - bound.minZ));
                 }
             } else { // same in three direct
@@ -626,7 +626,9 @@
                     pCenter.z = bound.maxZ;
                 } else { // center
                     scaleX = scaleY = scaleZ = 0.5;
-                    paddingX = paddingY = paddingZ = 0;
+                    paddingX = ((bound.maxX - bound.minX) % 2 == 0) ? 0 : -0.5;
+                    paddingY = ((bound.maxY - bound.minY) % 2 == 0) ? 0 : -0.5;
+                    paddingZ = ((bound.maxZ - bound.minZ) % 2 == 0) ? 0 : -0.5;
                     pCenter.x = bound.minX + Math.floor(0.5 * (bound.maxX - bound.minX));
                     pCenter.y = bound.minY + Math.floor(0.5 * (bound.maxY - bound.minY));
                     pCenter.z = bound.minZ + Math.floor(0.5 * (bound.maxZ - bound.minZ));
@@ -636,6 +638,8 @@
             center.x = this.getCenter2(bound.minX, bound.maxX, width, scaleX) + paddingX * width;
             center.y = this.getCenter2(bound.minY, bound.maxY, height, scaleY) + paddingY * height;
             center.z = this.getCenter2(bound.minZ, bound.maxZ, depth, scaleZ) + paddingZ * depth;
+            // if there are even number, need to update
+
         } else {
             center.x = align.x;
             center.y = align.y;

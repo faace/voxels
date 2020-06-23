@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>triggers</title>
+    <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
+    <!-- <script src="https://faace.github.io/aFrameByCode/dist/aFrameByCode.min.js"></script> -->
+    <script src="../dist/aFrameByCode.js"></script>
+    <script src="./js/superTouchForVoxels.js"></script>
+    <script src="../src/mvPly2Map.js"></script>
+    <script src="../src/Voxels.js"></script>
+    <script src="../src/Voxels.aframe.js"></script>
+</head>
+
+<body>
+    <script>
+        AFRAME.createAScene({
+            id: 'scene1',
+            createTrigger: function (father, map, position, size, faces) {
+                var item1 = father.addAnEntity('a-voxels#mapWater', {
+                    map: map,
+                    // opacities: '#ffffff_0.6',
+                    align: 'center bottom center',
+                    width: size,
+                    height: size,
+                    depth: size,
+                    position: position,
+                    type: 'item',
+                    faces: faces,
+                });
+
+                return item1;
+            },
+            onInit: function (scene) {
+                scene.assets.addList({
+                    'img#floor2': './img/floor2.jpg',
+                    'img#floor3': './img/floor3.jpg',
+                });
+
+                var size = this.size = 0.1;
+                var entity = scene.addAnEntity('a-entity', { 'super-touch': 'rotationX:-30 30;rotationZ:-30 30;scale:1 5', 'position': '0 -3 -3', rotation: '0 0 0' });
+                var map = entity.addAnEntity('a-voxels#map', {
+                    src: '../ply/trigger.ply',
+                    textures: '#111111_floor3,#no_444444_floor2',
+                    opacities: '#3300cc_0.6',
+                    align: 'center bottom center',
+                    width: size,
+                    height: size,
+                    depth: size,
+                    type: 'map',
+                });
+
+
+                var flashColor = "#ffffff";
+                flashColor = "#0000ff";
+                var flashItemMaps = {
+                    a: JSON.stringify({
+                        0: { 0: { 0: flashColor, 1: flashColor, 2: flashColor } },
+                    }),
+                }
+
+                this.trigger = this.createTrigger(entity, flashItemMaps.a, '1 1 2', size);
+                this.trigger.visible = false;
+
+                var chick = entity.addAnEntity('a-voxels#chick', {
+                    src: '../ply/chick.ply',
+                    align: 'center bottom center',
+                    'cell-size': size,
+                    position: '-4 3 1',
+                    type: 'hero',
+                });
+                scene.addEntities({
+                    'a-entity': { camera: '', 'position2': '0 5.6 -2', rotation: '-25 0 0' },
+                    'a-sky': { color: "#aCaCEC" },
+                });
+
+            },
+            onLoaded: function (scene) {
+                var posShow = new THREE.Vector3(-4, 3, 2);
+                scene.systems.voxels.addEventListener('heroMove', function (position) {
+                    // console.log('====', position);
+                    if (posShow.equals(position)) {
+                        var anim = AFRAME.anim();
+                        anim.sequence(
+                            anim.spawn(
+                                anim.fadeIn(1000),
+                                anim.moveBy(1000, { x: 0, y: this.size, z: 0 }),
+                                anim.cb(function () { this.trigger.visible = true; }.bind(this)),
+                            ),
+                            anim.cb(function () {
+                                console.log('here');
+                                this.trigger.mapPos.y++;
+                            }.bind(this)),
+                        );
+                        this.trigger.animRun(anim)
+                    }
+                }.bind(this));
+            }
+        });
+        AFRAME.loadScene('scene1');
+
+    </script>
+</body>
+
+</html>

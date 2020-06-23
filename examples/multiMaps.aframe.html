@@ -20,7 +20,7 @@
             createFlashItem: function (father, map, position, size, anim, faces) {
                 var item1 = father.addAnEntity('a-voxels#mapWater', {
                     map: map,
-                    opacities: '#ffffff_0.6',
+                    // opacities: '#ffffff_0.6',
                     align: 'center bottom center',
                     width: size,
                     height: size,
@@ -31,7 +31,7 @@
                 });
 
 
-                item1.animRun(anim)
+                // item1.animRun(anim)
             },
             onInit: function (scene) {
                 scene.assets.addList({
@@ -40,9 +40,9 @@
                 });
 
                 var size = 0.1;
-                var entity = scene.addAnEntity('a-entity', { 'super-touch': 'rotationX:-30 30;rotationZ:-30 30;scale:0.5 1.5', 'position': '0 -3 -3', rotation: '0 0 0' });
+                var entity = scene.addAnEntity('a-entity', { 'super-touch': 'rotationX:-30 30;rotationZ:-30 30;scale:1 5', 'position': '0 -3 -3', rotation: '0 0 0' });
                 var map = entity.addAnEntity('a-voxels#map', {
-                    src: '../ply/hill2.ply',
+                    src: '../ply/multiMaps.ply',
                     textures: '#111111_floor3,#no_444444_floor2',
                     opacities: '#0099ff_0.6',
                     align: 'center bottom center',
@@ -58,7 +58,14 @@
                 flashAnim.colorTo(100, '#0099ff').reverse().repeatForever();
 
                 var flashColor = "#ffffff";
+                flashColor = "#0000ff";
                 var flashItemMaps = {
+                    z: JSON.stringify({
+                        0: {
+                            2: { 2: flashColor, '-2': flashColor },
+                            '-2': { 2: flashColor, '-2': flashColor }
+                        },
+                    }),
                     a: JSON.stringify({
                         1: { 0: { 0: flashColor } },
                         0: { 0: { 0: flashColor } },
@@ -91,11 +98,12 @@
                     1: { 0: { 0: flashColor } }
                 });
 
+                this.createFlashItem(entity, flashItemMaps.a, '0 1 0', size, flashAnim);
+                this.createFlashItem(entity, flashItemMaps.z, '0 1 0', size, flashAnim);
 
-
-                this.createFlashItem(entity, flashItemMaps.a, '0 16 -8', size, flashAnim, 'front');
+                // this.createFlashItem(entity, flashItemMaps.a, '0 16 -8', size, flashAnim, 'front');
                 // this.createFlashItem(entity, flashItemMaps.a, '1 5 -8', size, flashAnim, 'front');
-                // this.createFlashItem(entity, flashItemMaps.b, '0 10 -8', size, flashAnim, 'front');
+                // this.createFlashItem(entity, flashItemMaps.b, '0.5 10 -8', size, flashAnim, 'front');
                 // this.createFlashItem(entity, flashItemMaps.c, '1 2 -5', size, flashAnim, 'top');
                 // this.createFlashItem(entity, flashItemMaps.d, '-2 2 -2', size, flashAnim, 'top');
                 // this.createFlashItem(entity, flashItemMaps.d, '4 2 -1', size, flashAnim, 'top');
@@ -104,16 +112,16 @@
                 // this.createFlashItem(entity, flashItemMaps.d, '0 2 2', size, flashAnim, 'top');
 
 
-                // var chick = entity.addAnEntity('a-voxels#chick', {
-                //     src: '../ply/chick.ply',
-                //     // textures: '#111111_floor3,#no_444444_floor2',
-                //     // opacities: '#33ccff_0.6',
-                //     align: 'center bottom center',
-                //     'cell-size': size,
-                //     position: '10 8 9',
-                //     type: 'hero',
-                //     // scale: '0.2 0.2 0.2',
-                // });
+                var chick = entity.addAnEntity('a-voxels#chick', {
+                    src: '../ply/chick.ply',
+                    // textures: '#111111_floor3,#no_444444_floor2',
+                    // opacities: '#33ccff_0.6',
+                    align: 'center bottom center',
+                    'cell-size': size,
+                    position: '0 1 1',
+                    type: 'hero',
+                    // scale: '0.2 0.2 0.2',
+                });
                 scene.addEntities({
                     'a-entity': { camera: '', 'position2': '0 5.6 -2', rotation: '-25 0 0' },
                     'a-sky': { color: "#aCaCEC" },

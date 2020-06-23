@@ -129,6 +129,7 @@
 
 
                             if (this.rotation.y <= PI_25 && this.rotation.y >= -PI_25) { // 正中
+                                this.rotation.z = 0;
                                 deltaY = evt.clientY - this.clientY;
                                 this.clientY = evt.clientY;
                                 this.rotation.x += deltaY * 0.01;
@@ -138,6 +139,7 @@
                                 else if (this.rotation.x > this.data.rotationX.max) this.rotation.x = this.data.rotationX.max;
 
                             } else if (this.rotation.y > PI_25 && this.rotation.y < PI_5 + PI_25) { // 左边
+                                this.rotation.x = 0;
                                 deltaY = evt.clientY - this.clientY;
                                 this.clientY = evt.clientY;
                                 this.rotation.z += deltaY * 0.01;
@@ -146,6 +148,7 @@
                                 if (this.rotation.z < this.data.rotationZ.min) this.rotation.z = this.data.rotationZ.min;
                                 else if (this.rotation.z > this.data.rotationZ.max) this.rotation.z = this.data.rotationZ.max;
                             } else if (this.rotation.y < -PI_25 && this.rotation.y > -PI_5 - PI_25) { // 右边
+                                this.rotation.x = 0;
                                 deltaY = this.clientY - evt.clientY;
                                 this.clientY = evt.clientY;
                                 this.rotation.z += deltaY * 0.01;
@@ -154,6 +157,7 @@
                                 if (this.rotation.z < this.data.rotationZ.min) this.rotation.z = this.data.rotationZ.min;
                                 else if (this.rotation.z > this.data.rotationZ.max) this.rotation.z = this.data.rotationZ.max;
                             } else { // 后边
+                                this.rotation.z = 0;
                                 deltaY = this.clientY - evt.clientY;
                                 this.clientY = evt.clientY;
                                 this.rotation.x += deltaY * 0.01;

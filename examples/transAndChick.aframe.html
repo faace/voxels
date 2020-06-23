@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>custom geometry</title>
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
-    <script src="https://faace.github.io/aFrameByCode/dist/aFrameByCode.min.js"></script>
+    <!-- <script src="https://faace.github.io/aFrameByCode/dist/aFrameByCode.min.js"></script> -->
+    <script src="../dist/aFrameByCode.js"></script>
     <script src="./js/superTouchForVoxels.js"></script>
     <script src="../src/mvPly2Map.js"></script>
     <!-- <script src="../src/Anim.js"></script> -->
@@ -27,7 +28,7 @@
                 var size = 0.1;
                 var entity = scene.addAnEntity('a-entity', {
                     'super-touch': 'rotationX:-30 30;rotationZ:-30 30;scale:0.5 1.5',
-                    'voxels-sys': 'teleports:#cc0099_#0033ff,#ff0000_#ffff00,#33ff00_#cc0099',
+                    'voxels-sys': 'teleports:-6,2,7>8,8,-6|3,4,8>-7,13,-7|3,13,0>-6,2,7',
                     position: '0 -3 -3',
                     rotation: '0 0 0'
                 });
