@@ -41,31 +41,22 @@
 
                 var size = this.size = 0.1;
                 var entity = scene.addAnEntity('a-entity', { 'super-touch': 'rotationX:-30 30;rotationZ:-30 30;scale:1 5', 'position': '0 -3 -3', rotation: '0 0 0' });
-                var map = entity.addAnEntity('a-voxels#map', {
-                    src: '../ply/trigger.ply',
-                    textures: '#111111_floor3,#no_444444_floor2',
-                    opacities: '#3300cc_0.6',
-                    align: 'center bottom center',
-                    width: size,
-                    height: size,
-                    depth: size,
-                    type: 'map',
-                });
+                // var map = entity.addAnEntity('a-voxels#map', {
+                //     src: '../ply/trigger.ply',
+                //     textures: '#111111_floor3,#no_444444_floor2',
+                //     opacities: '#3300cc_0.6',
+                //     align: 'center bottom center',
+                //     width: size,
+                //     height: size,
+                //     depth: size,
+                //     type: 'map',
+                // });
 
 
-                var flashColor = "#ffffff";
-                flashColor = "#0000ff";
-                var flashItemMaps = {
-                    a: JSON.stringify({
-                        0: { 0: { 0: flashColor, 1: flashColor, 2: flashColor } },
-                    }),
-                }
 
-                this.trigger = this.createTrigger(entity, flashItemMaps.a, '1 1 2', size);
-                this.trigger.visible = false;
 
                 var chick = entity.addAnEntity('a-voxels#chick', {
-                    src: '../ply/chick.ply',
+                    src: '../ply/chick.ply;../ply/chick1.ply',
                     align: 'center bottom center',
                     'cell-size': size,
                     position: '-4 3 1',
@@ -77,30 +68,6 @@
                 });
 
             },
-            onLoaded: function (scene) {
-                var posShow = new THREE.Vector3(-4, 3, 2);
-                scene.systems.voxels.addEventListener('heroMove', function (position, cb) {
-                    // console.log('====', position);
-                    if (posShow && posShow.equals(position)) {
-                        posShow = undefined;
-                        scene.systems.voxels.removeEventListener('heroMove', arguments.callee, false);
-                        var anim = AFRAME.anim();
-                        anim.sequence(
-                            anim.spawn(
-                                anim.fadeIn(1000),
-                                anim.moveBy(1000, { x: 0, y: this.size, z: 0 }),
-                                anim.cb(function () { this.trigger.visible = true; }.bind(this)),
-                            ),
-                            anim.cb(function () {
-                                console.log('here');
-                                this.trigger.mapPos.y++;
-                                cb && cb();
-                            }.bind(this)),
-                        );
-                        this.trigger.animRun(anim)
-                    } else cb && cb();
-                }.bind(this));
-            }
         });
         AFRAME.loadScene('scene1');
 

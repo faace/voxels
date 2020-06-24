@@ -89,6 +89,32 @@
             callback(mvPly2Map.parse(data))
         });
     };
+    mvPly2Map.loadMaps = function (urls, callback) {
+        var arr = [];
+        if (Array.isArray(urls)) {
+            urls.forEach(function (one) {
+                if (typeof one == 'string') {
+                    arr.push({
+                        name: one.split('/').pop().split('.')[0],
+                        url: one
+                    });
+                } else arr.push(one); // object with name and url
+            });
+        } else {
+            for (var i in urls) arr.push({ name: i, url: urls[i] });
+        }
+
+        var idx = 0;
+        var realLoad = function () {
+            if (idx >= arr.length) return callback(arr);
+            this.loadPly(arr[idx].url, function (map) {
+                arr[idx].map = mvPly2Map.parse(map);
+                idx++;
+                realLoad();
+            });
+        }.bind(this);
+        realLoad();
+    };
     var _loadPlyFromWeb = function (plys, maps, callback) {
         if (plys.length < 1) return;
         var one = plys.shift();
