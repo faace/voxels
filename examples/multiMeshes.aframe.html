@@ -41,27 +41,34 @@
 
                 var size = this.size = 0.1;
                 var entity = scene.addAnEntity('a-entity', { 'super-touch': 'rotationX:-30 30;rotationZ:-30 30;scale:1 5', 'position': '0 -3 -3', rotation: '0 0 0' });
-                // var map = entity.addAnEntity('a-voxels#map', {
-                //     src: '../ply/trigger.ply',
-                //     textures: '#111111_floor3,#no_444444_floor2',
-                //     opacities: '#3300cc_0.6',
-                //     align: 'center bottom center',
-                //     width: size,
-                //     height: size,
-                //     depth: size,
-                //     type: 'map',
-                // });
-
-
-
+                var map = entity.addAnEntity('a-voxels#map', {
+                    src: '../ply/hill.ply',
+                    textures: '#111111_floor3,#no_444444_floor2',
+                    opacities: '#3300cc_0.6',
+                    align: 'center bottom center',
+                    width: size,
+                    height: size,
+                    depth: size,
+                    type: 'map',
+                });
 
                 var chick = entity.addAnEntity('a-voxels#chick', {
-                    src: '../ply/chick.ply;../ply/chick1.ply',
+                    src: '../ply/chick.ply;../ply/chick1.ply;../ply/chick2.ply',
                     align: 'center bottom center',
                     'cell-size': size,
-                    position: '-4 3 1',
+                    position: '10 8 9',
+                    anims: 'stand:0;walk:1,2',
                     type: 'hero',
                 });
+                // chick.anim = {
+                //     stand: function () {
+                //         // chick.object3D.children[0].children[1].visible = true
+                //         console.log('yes', chick);
+                //     },
+                //     walk: function (ms) {
+                //         console.log('walk:' + ms);
+                //     },
+                // }
                 scene.addEntities({
                     'a-entity': { camera: '', 'position2': '0 5.6 -2', rotation: '-25 0 0' },
                     'a-sky': { color: "#aCaCEC" },

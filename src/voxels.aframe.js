@@ -123,7 +123,6 @@
 
                     } else if (this.isOpacity(ms, c.x + xx, c.y + yy - 1, c.z + zz)) return; // 是水，不能进去
                 }
-
                 this.hero.isMoving = true;
                 var anim = AFRAME.anim();
                 if (yy > 0) { // 需要向上或者向下
@@ -132,61 +131,48 @@
                     c.x += xx;
                     anim.sequence(
                         anim.moveBy(200, { x: 0, y: yy * this.size, z: 0 }),
-                        anim.moveBy(300, { x: xx * this.size, y: 0, z: zz * this.size }),
                         anim.cb(function () {
-                            this.setTargetPos(this.hero);
-                            console.log(c);
-                            this.checkTeleport(function () {
-                                this.checkMoveEvent(function () {
-                                    this.hero.isMoving = false;
-                                    this.moveHeroPosBy();
-                                }.bind(this));
-                            }.bind(this));
-
-                        }.bind(this))
+                            if (this.hero.anims && this.hero.anims.walk) this.hero.anims.walk(300);
+                        }.bind(this)),
+                        anim.moveBy(300, { x: xx * this.size, y: 0, z: zz * this.size }),
+                        anim.cb(this.afterHeroAnim.bind(this))
                     )
                 } else if (yy < 0) { // 需要向上或者向下
                     c.y += yy;
                     c.z += zz;
                     c.x += xx;
                     anim.sequence(
+                        anim.cb(function () {
+                            if (this.hero.anims && this.hero.anims.walk) this.hero.anims.walk(300);
+                        }.bind(this)),
                         anim.moveBy(300, { x: xx * this.size, y: 0, z: zz * this.size }),
                         anim.moveBy(200, { x: 0, y: yy * this.size, z: 0 }),
-                        anim.cb(function () {
-                            this.setTargetPos(this.hero);
-                            console.log(c);
-                            this.checkTeleport(function () {
-                                this.checkMoveEvent(function () {
-                                    this.hero.isMoving = false;
-                                    this.moveHeroPosBy();
-                                }.bind(this));
-                            }.bind(this));
-
-                        }.bind(this))
+                        anim.cb(this.afterHeroAnim.bind(this))
                     )
                 } else {
                     c.y += yy;
                     c.z += zz;
                     c.x += xx;
                     anim.sequence(
-                        anim.moveBy(500, { x: xx * this.size, y: yy * this.size, z: zz * this.size }),
                         anim.cb(function () {
-                            this.setTargetPos(this.hero);
-                            console.log(c);
-                            this.checkTeleport(function () {
-                                this.checkMoveEvent(function () {
-                                    this.hero.isMoving = false;
-                                    this.moveHeroPosBy();
-                                }.bind(this));
-                            }.bind(this));
-
-                        }.bind(this))
+                            if (this.hero.anims && this.hero.anims.walk) this.hero.anims.walk(500);
+                        }.bind(this)),
+                        anim.moveBy(500, { x: xx * this.size, y: yy * this.size, z: zz * this.size }),
+                        anim.cb(this.afterHeroAnim.bind(this))
                     )
                 }
                 this.hero.animRun(anim);
             }
-
-
+        },
+        afterHeroAnim: function () {
+            this.setTargetPos(this.hero);
+            this.checkTeleport(function () {
+                this.checkMoveEvent(function () {
+                    this.hero.isMoving = false;
+                    if (this.dir) this.moveHeroPosBy();
+                    else if (this.hero.anims && this.hero.anims.stand) this.hero.anims.stand();
+                }.bind(this));
+            }.bind(this));
         },
         setHeroRotation: function (angle) {
             this.hero.rotation.y = Math.PI * angle / 180;
@@ -360,7 +346,7 @@
                         }
                     }
 
-                    return t || this.default;;
+                    return t || this.default;
                 },
                 stringify: function (value) {
                     var txt = '';
@@ -373,6 +359,40 @@
                     return txt;
                 }
             },
+            anims: {
+                default: {},
+                parse: function (value) {
+                    var t;
+                    if (typeof value == 'string') {
+                        var list = value.trim().split(';');
+                        if (list.length > 0) {
+                            t = {};
+                            list.forEach(function (one) {
+                                var a = one.trim().split(':');
+                                var arr = a[1].trim().split(',');
+                                for (var i = arr.length - 1; i--; i > -1) {
+                                    arr[i] = arr[i].trim();
+                                    if (arr[i].length < 1) arr[i].splice(i, 1);
+                                }
+                                if (arr.length > 0) t[a[0].trim()] = arr;
+                            })
+                        }
+                    }
+
+                    return t || this.default;
+                },
+                stringify: function (value) {
+                    var txt = '';
+                    if (value) {
+                        for (var i in value) {
+                            if (txt) txt += ',';
+                            txt += i + ':' + value[i].join(',');
+                        }
+                    }
+                    return txt;
+                }
+            },
+            // anims: { type: 'string', default: '' },
             type: { type: 'string', default: '' },
         },
 
@@ -430,8 +450,6 @@
             if (maps) {
                 if (typeof maps == 'string') maps = JSON.parse(maps);
                 var group = new THREE.Group();
-
-
                 var idx = 0;
                 var realCreate = function () {
                     if (idx >= maps.length) {
@@ -440,6 +458,7 @@
                         AFRAME.addQuickAttributes(this.el);
                         this.el.mapPos = new THREE.Vector3().copy(this.el.position);
                         this.system.addType(this.data.type, this.el, {});
+                        this.setAnims();
                         return;
                     }
 
@@ -451,10 +470,37 @@
                     }.bind(this));
                 }.bind(this);
 
-
                 realCreate();
             }
         },
+        setAnims: function () {
+            var anims = this.data.anims;
+            for (var i in anims) this.setOneAnim(this.el, i, anims[i]);
+        },
+        setOneAnim: function (target, type, frames, cb) {
+            if (!target.anims) target.anims = {};
+            target.anims[type] = function (ms, times) {
+                var children = target.object3D.children[0].children;
+                if (frames.length == 1) this.setChildrenVisbile(children, 0);
+                else {
+                    times = times || frames.length;
+                    ms = ms / times;
+                    var anim = AFRAME.anim();
+                    var i = 0;
+                    anim.sequence(
+                        anim.cb(function () {
+                            i = (i + 1) % frames.length;
+                            this.setChildrenVisbile(children, frames[i]);
+                        }.bind(this)),
+                        anim.delay(ms)
+                    ).repeat(times);
+                    target.animRun(anim);;
+                }
+            }.bind(this);
+        },
+        setChildrenVisbile: function (children, idx) {
+            for (var i = 0; i < children.length; i++) children[i].visible = idx == i;
+        }
     });
 
     AFRAME.registerPrimitive('a-voxels', {
@@ -473,6 +519,7 @@
             textures: 'voxels.textures',
             opacities: 'voxels.opacities',
             type: 'voxels.type',
+            anims: 'voxels.anims',
             faces: 'voxels.faces',
         }
     });
