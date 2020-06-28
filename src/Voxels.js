@@ -56,7 +56,7 @@
 
         var geometry = this.createGeometry(vertices, faces);
         var mesh = new THREE.Mesh(geometry, this.materials);
-        cb(false, mesh, this.centerMap(this.map));
+        cb(false, mesh, this.centerMap(this.map), this.bound);
     };
     Voxels.prototype.copyMap = function (map) {
         var newMap = {};

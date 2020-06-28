@@ -66,7 +66,9 @@
         mouseDown: function (evt) { // evt.type == 'touchstart'
             this.rotation = this.el.object3D.rotation;
             // console.log(evt.buttons) // 1:left, 2:right, 3:left&right,4:middle,5:left&middle, 6:right&middle, 7:left&right&middel
-            // if (this.downs[evt.buttons]) return;
+            if (evt.buttons == 4) { // middle
+                this.system.switchCamera();
+            }
             this.downs[evt.buttons] = true;
             this.clientX = evt.clientX;
             this.clientY = evt.clientY;
@@ -176,7 +178,9 @@
         })(),
         mouseUp: function (evt) {
             this.system.dir = 0;
-            this.downs[evt.button] = false;
+            // console.log(evt.button, evt.buttons, this.downs);
+            // this.downs[evt.buttons] = false;
+            for (var i = 0; i < this.downs.length; i++) this.downs[i] = 0;
             evt.stopPropagation();
             evt.preventDefault();
         },

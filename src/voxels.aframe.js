@@ -7,7 +7,7 @@
     AFRAME.registerSystem('voxels', {
         init: function () {
             this.size = 0.1;
-            this.dir = 0; // 1 2 3 4 z+ x+ z- x-
+            this.dir = this.preDir = 0; // 1 2 3 4 z+ x+ z- x-
             this.ms = 0;
             this.maxMs = 500;
             this.teleports = {};
@@ -15,7 +15,7 @@
             this.maps = [];
             this.events = {};
         },
-        addType: function (type, target, map) {
+        addType: function (type, target, map, bound) {
             // if (!type) return;
             switch (type) {
                 case 'map': {
@@ -25,8 +25,10 @@
                 }
                 case 'hero': {
                     this.status = STATUS_MOVE;
+                    target.bound = bound;
                     this.hero = target;
                     this.hero.isMoving = false;
+                    if (this.needHeroCamera) this.addHeroCamera();
                     break;
                 }
                 case 'item': {
@@ -82,31 +84,13 @@
             if (this.hero && this.maps.length > 0) {
 
                 if (this.hero.isMoving) return;
-
+                if (this.dir > 0 && this.dir != this.preDir) return this.setHeroRotation();
                 var xx = 0, yy = 0, zz = 0;
-                switch (this.dir) {
-                    case 1: { // z+
-                        zz = 1;
-                        this.setHeroRotation(0);
-                        break;
-                    }
-                    case 3: { // z-
-                        zz = -1;
-                        this.setHeroRotation(180);
-                        break;
-                    }
-                    case 2: { // x+
-                        xx = 1;
-                        this.setHeroRotation(90);
-                        break;
-                    }
-                    case 4: { // x-
-                        xx = -1;
-                        this.setHeroRotation(-90);
-                        break;
-                    }
-                    default: return;
-                }
+                if (this.dir == 1) zz = 1;
+                else if (this.dir == 3) zz = -1;
+                else if (this.dir == 2) xx = 1;
+                else if (this.dir == 4) xx = -1;
+                else return;
 
                 var c = this.hero.mapPos;
                 var ms = this.maps;
@@ -175,7 +159,26 @@
             }.bind(this));
         },
         setHeroRotation: function (angle) {
-            this.hero.rotation.y = Math.PI * angle / 180;
+            var angle;
+            if (this.dir == 1) angle = 0; // zz= 1
+            else if (this.dir == 3) { // zz = -1
+                if (this.preDir == 4) this.hero.object3D.rotation.y += 2 * Math.PI;
+                angle = 180;
+            } else if (this.dir == 2) angle = 90; // xx = 1;
+            else if (this.dir == 4) { // xx = -1
+                if (this.preDir == 3) this.hero.object3D.rotation.y *= -1;
+                angle = -90;
+            }
+
+            this.hero.isMoving = true;
+            this.preDir = this.dir;
+            var anim = AFRAME.anim();
+            anim.sequence(
+                anim.rotationTo(500, { x: 0, y: angle, z: 0 }),
+                anim.cb(this.afterHeroAnim.bind(this))
+            )
+
+            this.hero.animRun(anim);
         },
         checkTeleport: function (cb) {
             var mapPos = this.hero.mapPos;
@@ -234,6 +237,32 @@
                     this.events.heroMove[i](this.hero.mapPos, realCb);
                 }
             } else cb && cb();
+        },
+        addHeroCamera: function (camera1) {
+            if (!this.cameras && camera1) {
+                this.cameras = [1, camera1];
+            }
+            if (!this.hero) return this.needHeroCamera = true;
+            delete this.needHeroCamera;
+            var height = (this.hero.bound.maxY - this.hero.bound.minY + 1) / (this.hero.bound.maxZ - this.hero.bound.minZ + 1) * this.size * 1.1;
+            var camera2 = this.hero.addAnEntity('a-entity', { camera: 'active: false', 'position': '0 ' + height + ' 0', rotation: '0 180 0' });
+            if (this.cameras) {
+                this.cameras.push(camera2);
+                // this.cameras[0] = 2;
+            } else {
+                this.cameras = [1, camera2];
+                this.cameras[1].setAttribute('camera', 'active', true);
+            }
+        },
+        switchCamera: function (idx) {
+            if (!idx) {
+                idx = (this.cameras[0] + 1);
+                if (idx >= this.cameras.length) idx = 1;
+            }
+            if (!this.cameras || !this.cameras[idx]) return; // 不存在
+            if (this.cameras[0] == idx) return; // 不变
+            this.cameras[idx].setAttribute('camera', 'active', true);
+            this.cameras[0] = parseInt(idx);
         },
         tick: function (ms, dms) {
             switch (this.status) {
@@ -429,20 +458,20 @@
             // var colors = mvPly2Map.getAllColors(map);
             // console.log(colors);
 
-            new Voxels(info).run(function (error, mesh, map) {
+            new Voxels(info).run(function (error, mesh, map, bound) {
                 if (error) throw error;
-                cb(mesh, map);
+                cb(mesh, map, bound);
             }.bind(this));
         },
         createObject3D: function (map) {
             if (map) {
                 if (typeof map == 'string') map = JSON.parse(map);
 
-                this.createMesh(map, function (mesh, newMap) {
+                this.createMesh(map, function (mesh, newMap, bound) {
                     this.el.setObject3D('mesh', mesh);
                     AFRAME.addQuickAttributes(this.el);
                     this.el.mapPos = new THREE.Vector3().copy(this.el.position);
-                    this.system.addType(this.data.type, this.el, newMap);
+                    this.system.addType(this.data.type, this.el, newMap, bound);
                 }.bind(this));
             }
         },
@@ -451,21 +480,23 @@
                 if (typeof maps == 'string') maps = JSON.parse(maps);
                 var group = new THREE.Group();
                 var idx = 0;
+                var b;
                 var realCreate = function () {
                     if (idx >= maps.length) {
                         group.children[0].visible = true;
                         this.el.setObject3D('mesh', group);
                         AFRAME.addQuickAttributes(this.el);
                         this.el.mapPos = new THREE.Vector3().copy(this.el.position);
-                        this.system.addType(this.data.type, this.el, {});
+                        this.system.addType(this.data.type, this.el, {}, b);
                         this.setAnims();
                         return;
                     }
 
-                    this.createMesh(maps[idx].map, function (mesh) {
+                    this.createMesh(maps[idx].map, function (mesh, newMap, bound) {
                         mesh.visible = false;
                         group.add(mesh);
                         idx++;
+                        b = b || bound;
                         realCreate();
                     }.bind(this));
                 }.bind(this);

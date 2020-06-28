@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>triggers</title>
+    <title>multiCameras</title>
     <script src="https://aframe.io/releases/1.0.4/aframe.min.js"></script>
     <!-- <script src="https://faace.github.io/aFrameByCode/dist/aFrameByCode.min.js"></script> -->
     <script src="../dist/aFrameByCode.js"></script>
@@ -42,7 +42,7 @@
                 var size = this.size = 0.1;
                 var entity = scene.addAnEntity('a-entity', { 'super-touch': 'rotationX:-30 30;rotationZ:-30 30;scale:1 5', 'position': '0 -3 -3', rotation: '0 0 0' });
                 var map = entity.addAnEntity('a-voxels#map', {
-                    src: '../ply/hill.ply',
+                    src: '../ply/multiCameras.ply',
                     textures: '#111111_floor3,#no_444444_floor2',
                     opacities: '#3300cc_0.6',
                     align: 'center bottom center',
@@ -52,29 +52,24 @@
                     type: 'map',
                 });
 
-                var chick = entity.addAnEntity('a-voxels#chick', {
+                this.chick = entity.addAnEntity('a-voxels#chick', {
                     src: '../ply/chick.ply;../ply/chick1.ply;../ply/chick2.ply',
                     anims: 'stand:0;walk:1,2',
                     align: 'center bottom center',
                     'cell-size': size,
-                    position: '10 8 9',
+                    position: '0 1 0',
                     type: 'hero',
                 });
-                // chick.anim = {
-                //     stand: function () {
-                //         // chick.object3D.children[0].children[1].visible = true
-                //         console.log('yes', chick);
-                //     },
-                //     walk: function (ms) {
-                //         console.log('walk:' + ms);
-                //     },
-                // }
-                scene.addEntities({
-                    'a-entity': { camera: '', 'position2': '0 5.6 -2', rotation: '-25 0 0' },
-                    'a-sky': { color: "#aCaCEC" },
-                });
+
+                this.camera1 = scene.addAnEntity('a-entity', { camera: '', 'position2': '0 5.6 -2', rotation: '-25 0 0' });
+                scene.addAnEntity('a-sky', { color: "#aCaCEC" });
 
             },
+            onLoaded: function (scene) {
+                // this.camera2 = this.chick.addAnEntity('a-entity', { camera: '', 'position': '0 ' + this.size + ' 0', rotation: '0 180 0' });
+
+                scene.systems.voxels.addHeroCamera(this.camera1);
+            }
         });
         AFRAME.loadScene('scene1');
 
