@@ -14,6 +14,9 @@
             this.status = STATUS_IDLE;
             this.maps = [];
             this.events = {};
+
+            this.ctlMove = 0;
+            this.faceTo = 1;
         },
         addType: function (type, target, map, bound) {
             // if (!type) return;
@@ -86,6 +89,7 @@
                 if (this.hero.isMoving) return;
                 if (this.dir > 0 && this.dir != this.preDir) return this.setHeroRotation();
                 var xx = 0, yy = 0, zz = 0;
+
                 if (this.dir == 1) zz = 1;
                 else if (this.dir == 3) zz = -1;
                 else if (this.dir == 2) xx = 1;
@@ -264,15 +268,152 @@
             this.cameras[idx].setAttribute('camera', 'active', true);
             this.cameras[0] = parseInt(idx);
         },
+        afterHeroMoving: function () {
+            this.setTargetPos(this.hero);
+            this.checkTeleport(function () {
+                this.checkMoveEvent(function () {
+                    this.hero.isMoving = false;
+                    if (this.ctlMove) this.moveHeroPosBy();
+                    else if (this.hero.anims && this.hero.anims.stand) this.hero.anims.stand();
+                }.bind(this));
+            }.bind(this));
+        },
+        moveHeroByGodCamera: function () {
+            if (!this.hero || this.maps.length < 1) return;
+            if (this.hero.isMoving) return;
+
+            // 如果是选择，就跳转到选择去
+            if (this.ctlMove == 5) return this.rotateHero(false);
+            else if (this.ctlMove == 6) return this.rotateHero(true);
+
+            var faceTo, xx = 0, yy = 0, zz = 0;
+            var heroMoveMap = {
+                1: { // 面向+z
+                    1: [0, -1], // 后s
+                    2: [-1, 0], // 右d
+                    3: [0, 1], // 前w
+                    4: [1, 0], // 左a
+                },
+                3: { // 面向-z
+                    1: [0, 1], // 后s
+                    2: [1, 0], // 右d
+                    3: [0, -1], // 前w
+                    4: [-1, 0], // 左a
+                },
+                2: { // 面向+x
+                    1: [-1, 0], // 后s
+                    2: [0, 1], // 右d
+                    3: [1, 0], // 前w
+                    4: [0, -1], // 左a
+                },
+                4: { // 面向+x
+                    1: [1, 0], // 后s
+                    2: [0, -1], // 右d
+                    3: [-1, 0], // 前w
+                    4: [0, 1], // 左a
+                },
+            };
+
+            // 需要根据旋转角度来控制
+
+            faceTo = heroMoveMap[this.faceTo];
+            if (!faceTo || !faceTo[this.ctlMove]) return;
+            xx = faceTo[this.ctlMove][0];
+            zz = faceTo[this.ctlMove][1];
+
+            var c = this.hero.mapPos;
+            var ms = this.maps;
+            if (this.isBlock(ms, c.x + xx, c.y + yy, c.z + zz)) { // 要去的地方有阻碍
+                if (this.isBlock(ms, c.x + xx, c.y + yy + 1, c.z + zz)) return; // 上面走不了
+                if (this.isBlock(ms, c.x + xx, c.y + 1, c.z + zz)) return; // 如果头顶有定西，就无法向上
+                yy = 1;
+            } else { // 需要判断脚下有没有路，有才能走
+                if (!this.isBlock(ms, c.x + xx, c.y + yy - 1, c.z + zz)) {
+                    // 再看看能否下楼
+                    if (!this.isBlock(ms, c.x + xx, c.y + yy - 2, c.z + zz)) return; // 脚下没路，不能走
+                    if (this.isOpacity(ms, c.x + xx, c.y + yy - 2, c.z + zz)) return; // 是水，不能进去
+                    yy = -1;
+
+                } else if (this.isOpacity(ms, c.x + xx, c.y + yy - 1, c.z + zz)) return; // 是水，不能进去
+            }
+            this.hero.isMoving = true;
+            var anim = AFRAME.anim();
+            if (yy > 0) { // 需要向上或者向下
+                c.y += yy;
+                c.z += zz;
+                c.x += xx;
+                anim.sequence(
+                    anim.moveBy(200, { x: 0, y: yy * this.size, z: 0 }),
+                    anim.cb(function () {
+                        if (this.hero.anims && this.hero.anims.walk) this.hero.anims.walk(300);
+                    }.bind(this)),
+                    anim.moveBy(300, { x: xx * this.size, y: 0, z: zz * this.size }),
+                    anim.cb(this.afterHeroAnim.bind(this))
+                )
+            } else if (yy < 0) { // 需要向上或者向下
+                c.y += yy;
+                c.z += zz;
+                c.x += xx;
+                anim.sequence(
+                    anim.cb(function () {
+                        if (this.hero.anims && this.hero.anims.walk) this.hero.anims.walk(300);
+                    }.bind(this)),
+                    anim.moveBy(300, { x: xx * this.size, y: 0, z: zz * this.size }),
+                    anim.moveBy(200, { x: 0, y: yy * this.size, z: 0 }),
+                    anim.cb(this.afterHeroAnim.bind(this))
+                )
+            } else {
+                c.y += yy;
+                c.z += zz;
+                c.x += xx;
+                anim.sequence(
+                    anim.cb(function () {
+                        if (this.hero.anims && this.hero.anims.walk) this.hero.anims.walk(500);
+                    }.bind(this)),
+                    anim.moveBy(500, { x: xx * this.size, y: yy * this.size, z: zz * this.size }),
+                    anim.cb(this.afterHeroAnim.bind(this))
+                )
+            }
+            this.hero.animRun(anim);
+
+        },
+        rotateHero: function (clockwise) {
+            // if (this.ctlMove > 0 && this.ctlMove != this.faceTo) return this.rotateHero(this.ctlMove);
+            var nextFaceTo = {
+                'true': { 1: 4, 4: 3, 3: 2, 2: 1 }, // 顺时针
+                'false': { 1: 2, 2: 3, 3: 4, 4: 1 } // 逆时针
+            };
+            var faceTo = nextFaceTo[clockwise][this.faceTo];
+            // console.log(faceTo, this.faceTo);
+            var angle;
+            if (faceTo == 1) angle = 0; // zz= 1
+            else if (faceTo == 3) { // zz = -1
+                if (this.faceTo == 4) this.hero.object3D.rotation.y += 2 * Math.PI;
+                angle = 180;
+            } else if (faceTo == 2) angle = 90; // xx = 1;
+            else if (faceTo == 4) { // xx = -1
+                if (this.faceTo == 3) this.hero.object3D.rotation.y *= -1;
+                angle = -90;
+            }
+
+            this.hero.isMoving = true;
+            this.faceTo = faceTo;
+            var anim = AFRAME.anim();
+            anim.sequence(
+                anim.rotationTo(500, { x: 0, y: angle, z: 0 }),
+                anim.cb(this.afterHeroMoving.bind(this))
+            )
+
+            this.hero.animRun(anim);
+        },
         tick: function (ms, dms) {
             switch (this.status) {
                 case STATUS_MOVE: {
-                    if (this.dir && !this.hero.isMoving) this.moveHeroPosBy();
+                    // if (this.dir && !this.hero.isMoving) this.moveHeroPosBy();
+                    if (this.ctlMove && !this.hero.isMoving) this.moveHeroByGodCamera();
                     break;
                 }
-                case STATUS_TELEPROT: {
-                    break;
-                }
+                case STATUS_TELEPROT: break;
             }
 
             // if (this.anim) this.anim.tick(dms);

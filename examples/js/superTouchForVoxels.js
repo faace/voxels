@@ -49,10 +49,15 @@
                 if (this.isPC()) {
                     this.downs = [false, false, false];
 
+                    touchTarget.addEventListener('keydown', this.keyDown.bind(this));
+                    touchTarget.addEventListener('keyup', this.keyUp.bind(this));
+
                     touchTarget.addEventListener('mousedown', this.mouseDown.bind(this));
                     touchTarget.addEventListener('mousemove', this.mouseMove.bind(this));
                     touchTarget.addEventListener('mouseup', this.mouseUp.bind(this));
                     touchTarget.addEventListener('mousewheel', this.mouseWheel.bind(this));
+
+
 
                     document.oncontextmenu = function () { return false; }
                 } else {
@@ -62,6 +67,93 @@
                     touchTarget.addEventListener('touchcancel', this.touchEnd.bind(this));
                 }
             } else console.log('Error touchTarget!');
+        },
+        keyDown: function (evt) {
+            // console.log(evt.keyCode);
+            switch (evt.keyCode) {
+                case 83: { // s 后退
+                    this.system.ctlMove = 1;
+                    break;
+                }
+                case 68: { // d 右边
+                    this.system.ctlMove = 2;
+                    break;
+                }
+                case 87: { // w 前进
+                    this.system.ctlMove = 3;
+                    break;
+                }
+                case 65: { // a 左边
+                    this.system.ctlMove = 4
+                    break;
+                }
+                case 81: { // q 左转
+                    this.system.ctlMove = 5;
+                    // this.system.rotateHero(false);
+                    break;
+                }
+                case 69: { // e 右转
+                    this.system.ctlMove = 6
+                    // this.system.rotateHero(true);
+                    break;
+                }
+
+                case 189: { // -
+                    this.system.scaleDown();
+                    break;
+                }
+                case 187: { // +
+                    this.system.scaleUp();
+                    break;
+                }
+                case 38: { // 旋转的上
+                    this.system.rotation(true, 0.01);
+                    break;
+                }
+                case 37: { // 旋转的左
+                    this.system.rotation(false, -0.01);
+                    break;
+                }
+                case 40: {  // 旋转的下
+                    this.system.rotation(true, -0.01);
+                    break;
+                }
+                case 39: {  // 旋转的右边
+                    this.system.rotation(false, 0.01);
+                    break;
+                }
+            }
+        },
+        keyUp: function (evt) {
+            // console.log('>' + evt.keyCode);
+            switch (evt.keyCode) {
+                case 87: { // w 前进
+                    if (this.system.ctlMove == 3) this.system.ctlMove = 0;
+                    break;
+                }
+                case 65: { // a 左边
+                    if (this.system.ctlMove == 4) this.system.ctlMove = 0;
+                    break;
+                }
+                case 83: { // s 后退
+                    if (this.system.ctlMove == 1) this.system.ctlMove = 0;
+                    break;
+                }
+                case 68: { // d 右边
+                    if (this.system.ctlMove == 2) this.system.ctlMove = 0;
+                    break;
+                }
+                case 81: { // q 左转
+                    if (this.system.ctlMove == 5) this.system.ctlMove = 0;
+                    break;
+                }
+                case 69: { // e 右转
+                    if (this.system.ctlMove == 6) this.system.ctlMove = 0;
+                    break;
+                }
+            }
+
+
         },
         mouseDown: function (evt) { // evt.type == 'touchstart'
             this.rotation = this.el.object3D.rotation;
@@ -249,6 +341,10 @@
             var touchTarget = this.touchTarget;
             if (touchTarget) {
                 if (this.isPC()) {
+                    touchTarget.removeEventListener('keydown', this.keyDown.bind(this));
+                    touchTarget.removeEventListener('keyup', this.keyUp.bind(this));
+
+
                     touchTarget.removeEventListener('mousedown', this.mouseDown.bind(this));
                     touchTarget.removeEventListener('mousemove', this.mouseMove.bind(this));
                     touchTarget.removeEventListener('mouseup', this.mouseUp.bind(this));
