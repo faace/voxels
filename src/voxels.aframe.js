@@ -1,47 +1,36 @@
 (function () {
+    if (typeof AFRAME == 'undefined') throw '[super touch] AFRAME should be loaded first.';
+
+    const PI = Math.PI, subPI = -PI;
+    const PI2 = Math.PI * 2, subPI2 = -PI2;
+    const PI_25 = Math.PI * 0.25;
+    const PI_5 = Math.PI * 0.5;
+
     var STATUS_IDLE = 0;
     var STATUS_MOVE = 1;
     var STATUS_TELEPROT = 2;
 
 
-    AFRAME.registerSystem('voxels', {
+    var voxelsSys = {
         init: function () {
             this.size = 0.1;
-            this.dir = this.preDir = 0; // 1 2 3 4 z+ x+ z- x-
-            this.ms = 0;
-            this.maxMs = 500;
-            this.teleports = {};
-            this.status = STATUS_IDLE;
-            this.maps = [];
-            this.events = {};
-
-            this.ctlMove = 0;
-            this.faceTo = 1;
         },
-        addType: function (type, target, map, bound) {
-            // if (!type) return;
-            switch (type) {
-                case 'map': {
-                    target.map = map;
-                    this.maps.push(target);
+        mixins: function (from) {
+            for (var i in from) this[i] = from[i];
+            return this;
+        },
+        tick: function (ms, dms) {
+            switch (this.status) {
+                case STATUS_MOVE: {
+                    if (this.ctlMove && !this.hero.isMoving) this.moveHeroByGodCamera();
                     break;
                 }
-                case 'hero': {
-                    this.status = STATUS_MOVE;
-                    target.bound = bound;
-                    this.hero = target;
-                    this.hero.isMoving = false;
-                    if (this.needHeroCamera) this.addHeroCamera();
-                    break;
-                }
-                case 'item': {
-                    target.map = map;
-                    this.maps.push(target);
-                    break;
-                }
+                case STATUS_TELEPROT: break;
             }
-            this.setTargetPos(target);
         },
+    };
+    voxelsSys.mixins({ // for events
+        events: {},
         addEventListener: function (name, cb) {
             this.events[name] = this.events[name] || [];
             if (this.events[name].indexOf(cb) < 0) this.events[name].push(cb);
@@ -53,137 +42,8 @@
                 if (idx > -1) this.events[name].splice(idx, 1);
             }
         },
-        setTargetPos: function (target, pos) {
-            pos = pos || target.mapPos;
-            target.object3D.position.set(pos.x * this.size, pos.y * this.size, pos.z * this.size);
-        },
-        isBlock: function (ms, x, y, z) {
-            var m, mx, my, mz;
-            for (var i = 0, m; i < ms.length; i++) {
-                if (!ms[i].visible) continue;
-                mx = ms[i].mapPos.x;
-                my = ms[i].mapPos.y;
-                mz = ms[i].mapPos.z;
-                m = ms[i].map;
-                if (m[y - my] && m[y - my][z - mz] && m[y - my][z - mz][x - mx]) return true;
-            }
-        },
-        isOpacity: function (ms, x, y, z) {
-            var m, mx, my, mz, one, opacity = 1;
-            for (var i = 0, m; i < ms.length; i++) {
-                if (!ms[i].visible) continue;
-                mx = ms[i].mapPos.x;
-                my = ms[i].mapPos.y;
-                mz = ms[i].mapPos.z;
-                m = ms[i].map;
-                one = m[y - my] && m[y - my][z - mz] && m[y - my][z - mz][x - mx];
-                if (!one) continue;
-                if (one && (typeof one.opacity == 'undefined' || one.opacity >= 1)) return false;
-                else opacity = one.opacity;
-            }
-            if (opacity < 1) return true;
-        },
-        moveHeroPosBy: function () {
-            if (this.hero && this.maps.length > 0) {
-
-                if (this.hero.isMoving) return;
-                if (this.dir > 0 && this.dir != this.preDir) return this.setHeroRotation();
-                var xx = 0, yy = 0, zz = 0;
-
-                if (this.dir == 1) zz = 1;
-                else if (this.dir == 3) zz = -1;
-                else if (this.dir == 2) xx = 1;
-                else if (this.dir == 4) xx = -1;
-                else return;
-
-                var c = this.hero.mapPos;
-                var ms = this.maps;
-                if (this.isBlock(ms, c.x + xx, c.y + yy, c.z + zz)) { // 要去的地方有阻碍
-                    if (this.isBlock(ms, c.x + xx, c.y + yy + 1, c.z + zz)) return; // 上面走不了
-                    if (this.isBlock(ms, c.x + xx, c.y + 1, c.z + zz)) return; // 如果头顶有定西，就无法向上
-                    yy = 1;
-                } else { // 需要判断脚下有没有路，有才能走
-                    if (!this.isBlock(ms, c.x + xx, c.y + yy - 1, c.z + zz)) {
-                        // 再看看能否下楼
-                        if (!this.isBlock(ms, c.x + xx, c.y + yy - 2, c.z + zz)) return; // 脚下没路，不能走
-                        if (this.isOpacity(ms, c.x + xx, c.y + yy - 2, c.z + zz)) return; // 是水，不能进去
-                        yy = -1;
-
-                    } else if (this.isOpacity(ms, c.x + xx, c.y + yy - 1, c.z + zz)) return; // 是水，不能进去
-                }
-                this.hero.isMoving = true;
-                var anim = AFRAME.anim();
-                if (yy > 0) { // 需要向上或者向下
-                    c.y += yy;
-                    c.z += zz;
-                    c.x += xx;
-                    anim.sequence(
-                        anim.moveBy(200, { x: 0, y: yy * this.size, z: 0 }),
-                        anim.cb(function () {
-                            if (this.hero.anims && this.hero.anims.walk) this.hero.anims.walk(300);
-                        }.bind(this)),
-                        anim.moveBy(300, { x: xx * this.size, y: 0, z: zz * this.size }),
-                        anim.cb(this.afterHeroAnim.bind(this))
-                    )
-                } else if (yy < 0) { // 需要向上或者向下
-                    c.y += yy;
-                    c.z += zz;
-                    c.x += xx;
-                    anim.sequence(
-                        anim.cb(function () {
-                            if (this.hero.anims && this.hero.anims.walk) this.hero.anims.walk(300);
-                        }.bind(this)),
-                        anim.moveBy(300, { x: xx * this.size, y: 0, z: zz * this.size }),
-                        anim.moveBy(200, { x: 0, y: yy * this.size, z: 0 }),
-                        anim.cb(this.afterHeroAnim.bind(this))
-                    )
-                } else {
-                    c.y += yy;
-                    c.z += zz;
-                    c.x += xx;
-                    anim.sequence(
-                        anim.cb(function () {
-                            if (this.hero.anims && this.hero.anims.walk) this.hero.anims.walk(500);
-                        }.bind(this)),
-                        anim.moveBy(500, { x: xx * this.size, y: yy * this.size, z: zz * this.size }),
-                        anim.cb(this.afterHeroAnim.bind(this))
-                    )
-                }
-                this.hero.animRun(anim);
-            }
-        },
-        afterHeroAnim: function () {
-            this.setTargetPos(this.hero);
-            this.checkTeleport(function () {
-                this.checkMoveEvent(function () {
-                    this.hero.isMoving = false;
-                    if (this.dir) this.moveHeroPosBy();
-                    else if (this.hero.anims && this.hero.anims.stand) this.hero.anims.stand();
-                }.bind(this));
-            }.bind(this));
-        },
-        setHeroRotation: function (angle) {
-            var angle;
-            if (this.dir == 1) angle = 0; // zz= 1
-            else if (this.dir == 3) { // zz = -1
-                if (this.preDir == 4) this.hero.object3D.rotation.y += 2 * Math.PI;
-                angle = 180;
-            } else if (this.dir == 2) angle = 90; // xx = 1;
-            else if (this.dir == 4) { // xx = -1
-                if (this.preDir == 3) this.hero.object3D.rotation.y *= -1;
-                angle = -90;
-            }
-
-            this.hero.isMoving = true;
-            this.preDir = this.dir;
-            var anim = AFRAME.anim();
-            anim.sequence(
-                anim.rotationTo(500, { x: 0, y: angle, z: 0 }),
-                anim.cb(this.afterHeroAnim.bind(this))
-            )
-
-            this.hero.animRun(anim);
-        },
+    }).mixins({ // for teleports
+        teleports: {},
         checkTeleport: function (cb) {
             var mapPos = this.hero.mapPos;
             var port = this.teleports[mapPos.y] && this.teleports[mapPos.y][mapPos.z] && this.teleports[mapPos.y][mapPos.z][mapPos.x];
@@ -217,11 +77,12 @@
             this.hero.animRun(anim);
         },
         setTeleports: function (teleports) { // x,y,z>x,y,z|x,y,z>x,y,z,
+            if (!teleports) return;
             var teleports = (teleports || '').split('|');
             var one, from, to, fx, fy, fz, yTel, zTel;
             for (var i = 0; i < teleports.length; i++) {
                 one = teleports[i].split('>');
-                if (one.length != 2) throw 'error data: [' + i + ']' + teleports[i]
+                if (one.length != 2) throw '[setTeleports] error data: [' + i + ']' + teleports[i]
                 from = one[0].split(',');
                 to = one[1].split(',');
                 fx = parseInt(from[0]);
@@ -234,14 +95,7 @@
                 zTel[fx].push({ x: parseInt(to[0]), y: parseInt(to[1]), z: parseInt(to[2]) });
             }
         },
-        checkMoveEvent: function (cb) {
-            if (this.events.heroMove && this.events.heroMove.length > 0) {
-                var realCb = AFRAME.afterAllCallback(this.events.heroMove.length, cb)
-                for (var i = 0; i < this.events.heroMove.length; i++) {
-                    this.events.heroMove[i](this.hero.mapPos, realCb);
-                }
-            } else cb && cb();
-        },
+    }).mixins({ // for camera
         addHeroCamera: function (camera1) {
             if (!this.cameras && camera1) {
                 this.cameras = [1, camera1];
@@ -268,12 +122,79 @@
             this.cameras[idx].setAttribute('camera', 'active', true);
             this.cameras[0] = parseInt(idx);
         },
+    }).mixins({ // for map and hero
+        status: STATUS_IDLE, // hero status
+        maps: [], // world maps
+        ctlMove: 0, // 
+        faceTo: 1, // hero facing to 1+z 2+x 3-z 4-x
+        addType: function (type, target, map, bound) {
+            // if (!type) return;
+            switch (type) {
+                case 'map': {
+                    target.map = map;
+                    this.maps.push(target);
+                    break;
+                }
+                case 'hero': {
+                    this.status = STATUS_MOVE;
+                    target.bound = bound;
+                    this.hero = target;
+                    this.hero.isMoving = false;
+                    if (this.needHeroCamera) this.addHeroCamera();
+                    break;
+                }
+                case 'item': {
+                    target.map = map;
+                    this.maps.push(target);
+                    break;
+                }
+            }
+            this.setTargetPos(target);
+        },
+        setTargetPos: function (target, pos) {
+            pos = pos || target.mapPos;
+            target.object3D.position.set(pos.x * this.size, pos.y * this.size, pos.z * this.size);
+        },
+        isBlock: function (ms, x, y, z) {
+            var m, mx, my, mz;
+            for (var i = 0, m; i < ms.length; i++) {
+                if (!ms[i].visible) continue;
+                mx = ms[i].mapPos.x;
+                my = ms[i].mapPos.y;
+                mz = ms[i].mapPos.z;
+                m = ms[i].map;
+                if (m[y - my] && m[y - my][z - mz] && m[y - my][z - mz][x - mx]) return true;
+            }
+        },
+        isOpacity: function (ms, x, y, z) {
+            var m, mx, my, mz, one, opacity = 1;
+            for (var i = 0, m; i < ms.length; i++) {
+                if (!ms[i].visible) continue;
+                mx = ms[i].mapPos.x;
+                my = ms[i].mapPos.y;
+                mz = ms[i].mapPos.z;
+                m = ms[i].map;
+                one = m[y - my] && m[y - my][z - mz] && m[y - my][z - mz][x - mx];
+                if (!one) continue;
+                if (one && (typeof one.opacity == 'undefined' || one.opacity >= 1)) return false;
+                else opacity = one.opacity;
+            }
+            if (opacity < 1) return true;
+        },
+        checkMoveEvent: function (cb) {
+            if (this.events.heroMove && this.events.heroMove.length > 0) {
+                var realCb = AFRAME.afterAllCallback(this.events.heroMove.length, cb)
+                for (var i = 0; i < this.events.heroMove.length; i++) {
+                    this.events.heroMove[i](this.hero.mapPos, realCb);
+                }
+            } else cb && cb();
+        },
         afterHeroMoving: function () {
             this.setTargetPos(this.hero);
             this.checkTeleport(function () {
                 this.checkMoveEvent(function () {
                     this.hero.isMoving = false;
-                    if (this.ctlMove) this.moveHeroPosBy();
+                    if (this.ctlMove) this.moveHeroByGodCamera();
                     else if (this.hero.anims && this.hero.anims.stand) this.hero.anims.stand();
                 }.bind(this));
             }.bind(this));
@@ -306,7 +227,7 @@
                     3: [1, 0], // 前w
                     4: [0, -1], // 左a
                 },
-                4: { // 面向+x
+                4: { // 面向-x
                     1: [1, 0], // 后s
                     2: [0, -1], // 右d
                     3: [-1, 0], // 前w
@@ -348,7 +269,7 @@
                         if (this.hero.anims && this.hero.anims.walk) this.hero.anims.walk(300);
                     }.bind(this)),
                     anim.moveBy(300, { x: xx * this.size, y: 0, z: zz * this.size }),
-                    anim.cb(this.afterHeroAnim.bind(this))
+                    anim.cb(this.afterHeroMoving.bind(this))
                 )
             } else if (yy < 0) { // 需要向上或者向下
                 c.y += yy;
@@ -360,7 +281,7 @@
                     }.bind(this)),
                     anim.moveBy(300, { x: xx * this.size, y: 0, z: zz * this.size }),
                     anim.moveBy(200, { x: 0, y: yy * this.size, z: 0 }),
-                    anim.cb(this.afterHeroAnim.bind(this))
+                    anim.cb(this.afterHeroMoving.bind(this))
                 )
             } else {
                 c.y += yy;
@@ -371,7 +292,7 @@
                         if (this.hero.anims && this.hero.anims.walk) this.hero.anims.walk(500);
                     }.bind(this)),
                     anim.moveBy(500, { x: xx * this.size, y: yy * this.size, z: zz * this.size }),
-                    anim.cb(this.afterHeroAnim.bind(this))
+                    anim.cb(this.afterHeroMoving.bind(this))
                 )
             }
             this.hero.animRun(anim);
@@ -406,25 +327,97 @@
 
             this.hero.animRun(anim);
         },
-        tick: function (ms, dms) {
-            switch (this.status) {
-                case STATUS_MOVE: {
-                    // if (this.dir && !this.hero.isMoving) this.moveHeroPosBy();
-                    if (this.ctlMove && !this.hero.isMoving) this.moveHeroByGodCamera();
-                    break;
-                }
-                case STATUS_TELEPROT: break;
+    }).mixins({ // touchTarget
+        setTouchTarget: function (data) {
+            this.touchTarget = AFRAME.$(data.touchTarget);
+            this.ttRotation = this.touchTarget.object3D.rotation;
+            this.ttScale = this.touchTarget.object3D.scale;
+            this.ttRotationY = data.rotationY;
+            this.ttRotationX = data.rotationX;
+            this.ttRotationZ = data.rotationZ;
+            this.ttScale = data.scale;
+            this.ttScaleStep = (this.ttScale.max - this.ttScale.min) * 0.1;
+        },
+        scaleDown: function () {
+            var scale = this.ttScale;
+            scale.x -= this.ttScaleStep;
+            if (scale.x < this.ttScale.min) scale.x = this.ttScale.min;
+            scale.y = scale.z = scale.x;
+        },
+        scaleUp: function () {
+            var scale = this.ttScale;
+            scale.x += this.ttScaleStep;
+            if (scale.x > this.ttScale.max) scale.x = this.ttScale.max;
+            scale.y = scale.z = scale.x;
+        },
+        limitRotation: function (ttRotation, key, range) {
+            while (ttRotation[key] < subPI) ttRotation[key] += PI2;
+            while (ttRotation[key] > PI) ttRotation[key] += subPI2;
+            if (ttRotation[key] < range.min) ttRotation[key] = range.min;
+            else if (ttRotation[key] > range.max) ttRotation[key] = range.max;
+        },
+        zeroRotation: function (ttRotation, key) {
+            if (ttRotation[key] > 0.01) ttRotation[key] -= 0.01;
+            else if (ttRotation[key] < -0.01) ttRotation[key] += 0.01;
+            else ttRotation[key] = 0;
+        },
+        rotation: function (dx, dy) {
+            this.ttRotation.y += dx;
+            this.limitRotation(this.ttRotation, 'y', this.ttRotationY);
+
+            if (this.ttRotation.y <= PI_25 && this.ttRotation.y >= -PI_25) { // 正中
+                this.zeroRotation(this.ttRotation, 'z')
+                this.ttRotation.x += dy;
+                this.limitRotation(this.ttRotation, 'x', this.ttRotationX);
+            } else if (this.ttRotation.y > PI_25 && this.ttRotation.y < PI_5 + PI_25) { // 左边
+                this.zeroRotation(this.ttRotation, 'x');
+                this.ttRotation.z += dy;
+                this.limitRotation(this.ttRotation, 'z', this.ttRotationZ);
+            } else if (this.ttRotation.y < -PI_25 && this.ttRotation.y > -PI_5 - PI_25) { // 右边
+                this.zeroRotation(this.ttRotation, 'x')
+                this.ttRotation.z -= dy;
+                this.limitRotation(this.ttRotation, 'z', this.ttRotationZ);
+            } else { // 后边
+                this.zeroRotation(this.ttRotation, 'z')
+                this.ttRotation.x -= dy;
+                this.limitRotation(this.ttRotation, 'x', this.ttRotationX);
             }
 
-            // if (this.anim) this.anim.tick(dms);
         },
     });
+    AFRAME.registerSystem('voxels', voxelsSys);
+
+    var getRangeSchema = function (min, max, scale) {
+        scale = scale || 1;
+        return {
+            default: { min: min, max: max },
+            parse: function (value) {
+                var t = { min: min, max: max };
+                if (typeof value == 'string') {
+                    var list = value.trim().split(' ');
+                    var l0 = parseFloat(list[0] * scale), l1 = parseFloat(list[1] * scale);
+                    t.min = Math.min(l0, l1);
+                    t.max = Math.max(l0, l1);
+                }
+                return t;
+            },
+            stringify: function (value) {
+                return (value.min / scale) + ' ' + (value.max / scale);
+            }
+        };
+    };
 
     AFRAME.registerComponent('voxels-sys', {
         schema: {
             size: { type: 'number', default: 0.1 },
             maxMs: { type: 'number', default: 500 },
             teleports: { type: 'string', default: '' }, // x y z: x y z, x y z: x y z,
+
+            touchTarget: { type: 'string' },
+            rotationY: getRangeSchema(-Math.PI, Math.PI, PI / 180),
+            rotationX: getRangeSchema(-Math.PI, Math.PI, PI / 180),
+            rotationZ: getRangeSchema(-Math.PI, Math.PI, PI / 180),
+            scale: getRangeSchema(0.01, 2, 1),
         },
 
         init: function () {
@@ -432,7 +425,9 @@
             this.system.size = this.data.size;
             this.system.maxMs = this.data.maxMs;
             this.system.setTeleports(this.data.teleports);
-            // this.system.teleports = ;
+            console.log('>>>>', this.data.touchTarget);
+            this.system.setTouchTarget(this.data);
+            // AFRAME.$(this.data.touchTarget)
         }
     });
 

@@ -40,9 +40,9 @@
                 });
 
                 var size = this.size = 0.1;
-                var entity = scene.addAnEntity('a-entity#world', {
+                var entity = scene.addAnEntity('a-entity#building', {
                     'super-touch': 'rotationX:-30 30;rotationZ:-30 30;scale:1 5', 'position': '0 -3 -3', rotation: '0 0 0',
-                    'voxels-sys': 'world:#world;rotationX:-30 30;rotationZ:-30 30;scale:1 5'
+                    'voxels-sys': 'touchTarget:#building;rotationX:-30 30;rotationZ:-30 30;scale:1 5'
                 });
                 var map = entity.addAnEntity('a-voxels#map', {
                     src: '../ply/multiCameras.ply',

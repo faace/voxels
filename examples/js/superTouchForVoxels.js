@@ -107,19 +107,19 @@
                     break;
                 }
                 case 38: { // 旋转的上
-                    this.system.rotation(true, 0.01);
+                    this.system.rotation(0, 0.02);
                     break;
                 }
                 case 37: { // 旋转的左
-                    this.system.rotation(false, -0.01);
+                    this.system.rotation(-0.02, 0);
                     break;
                 }
                 case 40: {  // 旋转的下
-                    this.system.rotation(true, -0.01);
+                    this.system.rotation(0, -0.02);
                     break;
                 }
                 case 39: {  // 旋转的右边
-                    this.system.rotation(false, 0.01);
+                    this.system.rotation(0.02, 0);
                     break;
                 }
             }
@@ -213,14 +213,18 @@
                         }
                         case 2: { // right
                             deltaX = evt.clientX - this.clientX;
+                            deltaY = evt.clientY - this.clientY;
                             this.clientX = evt.clientX;
-                            this.rotation.y += deltaX * 0.01;
-                            while (this.rotation.y < subPI) this.rotation.y += PI2;
-                            while (this.rotation.y > PI) this.rotation.y += subPI2;
-                            if (this.rotation.y < this.data.rotationY.min) this.rotation.y = this.data.rotationY.min;
-                            else if (this.rotation.y > this.data.rotationY.max) this.rotation.y = this.data.rotationY.max;
+                            this.clientY = evt.clientY;
 
+                            this.system.rotation(deltaX * 0.01, deltaY * 0.01);
+                            // this.rotation.y += deltaX * 0.01;
+                            // while (this.rotation.y < subPI) this.rotation.y += PI2;
+                            // while (this.rotation.y > PI) this.rotation.y += subPI2;
+                            // if (this.rotation.y < this.data.rotationY.min) this.rotation.y = this.data.rotationY.min;
+                            // else if (this.rotation.y > this.data.rotationY.max) this.rotation.y = this.data.rotationY.max;
 
+                            break;
 
                             if (this.rotation.y <= PI_25 && this.rotation.y >= -PI_25) { // 正中
                                 this.rotation.z = 0;
@@ -277,17 +281,9 @@
             evt.preventDefault();
         },
         mouseWheel: function (evt) {
+            if (evt.wheelDelta > 0) this.system.scaleUp(); // 向上滚，变大
+            else this.system.scaleDown();
 
-            var scale = this.el.object3D.scale;
-            if (evt.wheelDelta > 0) { // 向上滚，变大
-                scale.x += this.scaleStep;
-                if (scale.x > this.data.scale.max) scale.x = this.data.scale.max;
-            } else {
-                scale.x -= this.scaleStep;
-                if (scale.x < this.data.scale.min) scale.x = this.data.scale.min;
-            }
-            // console.log(this.data.scale, scale.x);
-            scale.y = scale.z = scale.x;
         },
         touchStart: function (evt) { // evt.type == 'touchstart'
             if (this.isDown) return;
