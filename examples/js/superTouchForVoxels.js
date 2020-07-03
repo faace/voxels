@@ -75,7 +75,7 @@
                     this.system.ctlMove = 1;
                     break;
                 }
-                case 68: { // d 右边
+                case 68: { // d 右移
                     this.system.ctlMove = 2;
                     break;
                 }
@@ -83,7 +83,7 @@
                     this.system.ctlMove = 3;
                     break;
                 }
-                case 65: { // a 左边
+                case 65: { // a 左移
                     this.system.ctlMove = 4
                     break;
                 }
@@ -157,16 +157,14 @@
         },
         mouseDown: function (evt) { // evt.type == 'touchstart'
             this.rotation = this.el.object3D.rotation;
-            // console.log(evt.buttons) // 1:left, 2:right, 3:left&right,4:middle,5:left&middle, 6:right&middle, 7:left&right&middel
+
             if (evt.buttons == 4) { // middle
-                this.system.switchCamera();
+                this.isButtons4 = true;
             }
-            this.downs[evt.buttons] = true;
             this.clientX = evt.clientX;
             this.clientY = evt.clientY;
             evt.stopPropagation();
             evt.preventDefault();
-            // console.log(evt.button, this.downs[evt.button]);
         },
         mouseMove: (function () {
             var deltaX, deltaY;
@@ -180,33 +178,14 @@
                         case 1: { //  left
                             deltaX = evt.clientX - this.clientX;
                             deltaY = evt.clientY - this.clientY;
-                            // console.log(deltaX, deltaY);
                             if (Math.abs(deltaX) < step && Math.abs(deltaY) < step) break;
-                            if (this.rotation.y <= PI_25 && this.rotation.y >= -PI_25) { // 正中
-                                if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
-                                    this.system.dir = (deltaX > 0) ? 2 : 4; // x+ x-
-                                } else {
-                                    this.system.dir = (deltaY > 0) ? 1 : 3; // z+ z-
-                                }
-                            } else if (this.rotation.y > PI_25 && this.rotation.y < PI_5 + PI_25) { // 左边
-                                if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
-                                    this.system.dir = (deltaX > 0) ? 1 : 3; // z+ z-
-                                } else {
-                                    this.system.dir = (deltaY > 0) ? 4 : 2; // x+ x-
-                                }
-                            } else if (this.rotation.y < -PI_25 && this.rotation.y > -PI_5 - PI_25) { // 右边
-                                if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
-                                    this.system.dir = (deltaX > 0) ? 3 : 1; // x+ x-
-                                } else {
-                                    this.system.dir = (deltaY > 0) ? 2 : 4; // z+ z-
-                                }
-                            } else { // 后边
-                                if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
-                                    this.system.dir = (deltaX > 0) ? 4 : 2; // x+ x-
-                                } else {
-                                    this.system.dir = (deltaY > 0) ? 3 : 1; // z+ z-
-                                }
+
+                            if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
+                                this.system.ctlMove = (deltaX > 0) ? 2 : 4; // 右移 左移
+                            } else {
+                                this.system.ctlMove = (deltaY > 0) ? 3 : 1; // 前进 后退
                             }
+
                             this.clientX = evt.clientX;
                             this.clientY = evt.clientY;
                             break;
@@ -218,52 +197,18 @@
                             this.clientY = evt.clientY;
 
                             this.system.rotation(deltaX * 0.01, deltaY * 0.01);
-                            // this.rotation.y += deltaX * 0.01;
-                            // while (this.rotation.y < subPI) this.rotation.y += PI2;
-                            // while (this.rotation.y > PI) this.rotation.y += subPI2;
-                            // if (this.rotation.y < this.data.rotationY.min) this.rotation.y = this.data.rotationY.min;
-                            // else if (this.rotation.y > this.data.rotationY.max) this.rotation.y = this.data.rotationY.max;
 
                             break;
+                        }
+                        case 4: { //  mid
+                            deltaX = evt.clientX - this.clientX;
+                            if (Math.abs(deltaX) < step) break;
+                            if (this.isButtons4) this.isButtons4 = false;
 
-                            if (this.rotation.y <= PI_25 && this.rotation.y >= -PI_25) { // 正中
-                                this.rotation.z = 0;
-                                deltaY = evt.clientY - this.clientY;
-                                this.clientY = evt.clientY;
-                                this.rotation.x += deltaY * 0.01;
-                                while (this.rotation.x < subPI) this.rotation.x += PI2;
-                                while (this.rotation.x > PI) this.rotation.x += subPI2;
-                                if (this.rotation.x < this.data.rotationX.min) this.rotation.x = this.data.rotationX.min;
-                                else if (this.rotation.x > this.data.rotationX.max) this.rotation.x = this.data.rotationX.max;
+                            this.system.ctlMove = (deltaX > 0) ? 6 : 5; // 右转 左转
 
-                            } else if (this.rotation.y > PI_25 && this.rotation.y < PI_5 + PI_25) { // 左边
-                                this.rotation.x = 0;
-                                deltaY = evt.clientY - this.clientY;
-                                this.clientY = evt.clientY;
-                                this.rotation.z += deltaY * 0.01;
-                                while (this.rotation.z < subPI) this.rotation.z += PI2;
-                                while (this.rotation.z > PI) this.rotation.z += subPI2;
-                                if (this.rotation.z < this.data.rotationZ.min) this.rotation.z = this.data.rotationZ.min;
-                                else if (this.rotation.z > this.data.rotationZ.max) this.rotation.z = this.data.rotationZ.max;
-                            } else if (this.rotation.y < -PI_25 && this.rotation.y > -PI_5 - PI_25) { // 右边
-                                this.rotation.x = 0;
-                                deltaY = this.clientY - evt.clientY;
-                                this.clientY = evt.clientY;
-                                this.rotation.z += deltaY * 0.01;
-                                while (this.rotation.z < subPI) this.rotation.z += PI2;
-                                while (this.rotation.z > PI) this.rotation.z += subPI2;
-                                if (this.rotation.z < this.data.rotationZ.min) this.rotation.z = this.data.rotationZ.min;
-                                else if (this.rotation.z > this.data.rotationZ.max) this.rotation.z = this.data.rotationZ.max;
-                            } else { // 后边
-                                this.rotation.z = 0;
-                                deltaY = this.clientY - evt.clientY;
-                                this.clientY = evt.clientY;
-                                this.rotation.x += deltaY * 0.01;
-                                while (this.rotation.x < subPI) this.rotation.x += PI2;
-                                while (this.rotation.x > PI) this.rotation.x += subPI2;
-                                if (this.rotation.x < this.data.rotationX.min) this.rotation.x = this.data.rotationX.min;
-                                else if (this.rotation.x > this.data.rotationX.max) this.rotation.x = this.data.rotationX.max;
-                            }
+                            this.clientX = evt.clientX;
+                            this.clientY = evt.clientY;
                             break;
                         }
                     }
@@ -273,10 +218,11 @@
             }
         })(),
         mouseUp: function (evt) {
-            this.system.dir = 0;
-            // console.log(evt.button, evt.buttons, this.downs);
-            // this.downs[evt.buttons] = false;
-            for (var i = 0; i < this.downs.length; i++) this.downs[i] = 0;
+            this.system.ctlMove = 0;
+            if (this.isButtons4) {
+                this.isButtons4 = false;
+                this.system.switchCamera();
+            }
             evt.stopPropagation();
             evt.preventDefault();
         },
@@ -287,7 +233,10 @@
         },
         touchStart: function (evt) { // evt.type == 'touchstart'
             if (this.isDown) return;
+            this.distance = 0;
+            this.system.ctlMove = 0;
             this.isDown = true;
+            this.scaleStatus = touches.length == 2 ? 1 : 0; // 0 no two fingers, 1: is two fingers
             var touches = evt.touches;
             this.clientX = touches[0].clientX;
             this.clientY = touches[0].clientY;
@@ -297,39 +246,70 @@
                     + (touches[0].clientY - touches[1].clientY) * (touches[0].clientY - touches[1].clientY);
             } else this.distance = false;
         },
-        touchMove: function (evt) {
-            if (this.isDown) {
-                var touches = evt.touches;
+        touchMove: (function () {
+            var deltaX, deltaY;
+            var touches;
+            var step = 40;
+            var distance;
 
-                if (touches.length > 1) {
-                    // 只记录
-                    this.clientX = touches[0].clientX;
-                    this.clientY = touches[0].clientY;
+            return function (evt) {
+                if (this.isDown) {
+                    touches = evt.touches;
 
-                    var distance = (touches[0].clientX - touches[1].clientX) * (touches[0].clientX - touches[1].clientX)
-                        + (touches[0].clientY - touches[1].clientY) * (touches[0].clientY - touches[1].clientY);
-                    if (!this.distance) this.distance = distance;
-                    else {
-                        var gap = 0.001 * (distance > this.distance ? 1 : -1)
-                        var scale = this.el.object3D.scale.z + gap * Math.sqrt(Math.abs(distance - this.distance));
-                        if (scale < 0.3) scale = 0.3;
-                        else if (scale > 3) scale = 3;
-                        this.el.object3D.scale.x = this.el.object3D.scale.y = this.el.object3D.scale.z = scale;
-                        this.distance = distance;
+                    if (touches.length == 3) { // 三指， 旋转，但是只判断第一个触摸屏
+
+                        deltaX = touches[0].clientX - this.clientX;
+                        deltaY = touches[0].clientY - this.clientY;
+                        this.clientX = touches[0].clientX;
+                        this.clientY = touches[0].clientY;
+
+                        this.system.rotation(deltaX * 0.01, deltaY * 0.01);
+                    } else if (touches.length == 2) { // 双指，放大缩小
+                        this.clientX = touches[0].clientX;
+                        this.clientY = touches[0].clientY;
+                        if (this.scaleStatus == 0) this.scaleStatus = 1;
+                        distance = (touches[0].clientX - touches[1].clientX) * (touches[0].clientX - touches[1].clientX)
+                            + (touches[0].clientY - touches[1].clientY) * (touches[0].clientY - touches[1].clientY);
+                        if (!this.distance) this.distance = distance;
+                        else if (Math.abs(this.distance - distance) > 20) {
+                            this.scaleStatus = 2;
+                            if (distance > this.distance) this.system.scaleUp(); // 向上滚，变大
+                            else this.system.scaleDown();
+                            // var gap = 0.001 * (distance > this.distance ? 1 : -1)
+                            // var scale = this.el.object3D.scale.z + gap * Math.sqrt(Math.abs(distance - this.distance));
+                            // if (scale < 0.3) scale = 0.3;
+                            // else if (scale > 3) scale = 3;
+                            // this.el.object3D.scale.x = this.el.object3D.scale.y = this.el.object3D.scale.z = scale;
+                            this.distance = distance;
+                        }
+                    } else { // 只判断1指的前后左右平移操作
+                        deltaX = touches[0].clientX - this.clientX;
+                        deltaY = touches[0].clientY - this.clientY;
+
+                        this.distance = false;
+
+                        if (Math.abs(deltaX) < step && Math.abs(deltaY) < step) break;
+
+                        if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
+                            this.system.ctlMove = (deltaX > 0) ? 2 : 4; // 右移 左移
+                        } else {
+                            this.system.ctlMove = (deltaY > 0) ? 3 : 1; // 前进 后退
+                        }
+
+                        this.clientX = touches[0].clientX;
+                        this.clientY = touches[0].clientY;
                     }
-                } else {
-                    var deltaX = touches[0].clientX - this.clientX;
-                    this.clientX += deltaX;
-                    var deltaY = touches[0].clientY - this.clientY;
-                    this.clientY += deltaY;
-                    this.el.object3D.rotation.y += deltaX * 0.01;
-                    this.el.object3D.rotation.x += deltaY * 0.01;
-
-                    this.distance = false;
                 }
             }
-        },
+        })(),
         touchEnd: function (evt) {
+            if (this.scaleStatus == 1) {
+                this.scaleStatus = 0;
+                this.system.ctlMove = 6;
+                setTimeout(function () {
+                    this.system.ctlMove = 0;
+                }.bind(this), 500);
+            }
             this.isDown = false;
         },
 
@@ -340,10 +320,10 @@
                     touchTarget.removeEventListener('keydown', this.keyDown.bind(this));
                     touchTarget.removeEventListener('keyup', this.keyUp.bind(this));
 
-
                     touchTarget.removeEventListener('mousedown', this.mouseDown.bind(this));
                     touchTarget.removeEventListener('mousemove', this.mouseMove.bind(this));
                     touchTarget.removeEventListener('mouseup', this.mouseUp.bind(this));
+                    touchTarget.removeEventListener('mousewheel', this.mouseUp.bind(this));
                 } else {
                     touchTarget.removeEventListener('touchstart', this.touchStart.bind(this));
                     touchTarget.removeEventListener('touchmove', this.touchMove.bind(this));
@@ -361,7 +341,6 @@
             }
             return true;
         },
-
 
         // tick: function (time, timeDelta) {
         //     // Do something on every scene tick or frame.
