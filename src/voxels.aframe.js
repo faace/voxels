@@ -335,19 +335,19 @@
             this.ttRotationY = data.rotationY;
             this.ttRotationX = data.rotationX;
             this.ttRotationZ = data.rotationZ;
-            this.ttScale = data.scale;
-            this.ttScaleStep = (this.ttScale.max - this.ttScale.min) * 0.1;
+            this.ttdScale = data.scale;
+            this.ttScaleStep = (this.ttdScale.max - this.ttdScale.min) * 0.1;
         },
         scaleDown: function () {
             var scale = this.ttScale;
             scale.x -= this.ttScaleStep;
-            if (scale.x < this.ttScale.min) scale.x = this.ttScale.min;
+            if (scale.x < this.ttdScale.min) scale.x = this.ttdScale.min;
             scale.y = scale.z = scale.x;
         },
         scaleUp: function () {
             var scale = this.ttScale;
             scale.x += this.ttScaleStep;
-            if (scale.x > this.ttScale.max) scale.x = this.ttScale.max;
+            if (scale.x > this.ttdScale.max) scale.x = this.ttdScale.max;
             scale.y = scale.z = scale.x;
         },
         limitRotation: function (ttRotation, key, range) {

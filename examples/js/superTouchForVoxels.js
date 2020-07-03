@@ -172,7 +172,7 @@
 
             return function (evt) {
                 // console.log(evt.button, evt.buttons, this.downs);
-                if (this.downs[evt.buttons]) {
+                if (true || this.downs[evt.buttons]) {
                     // console.log(evt.buttons);
                     switch (evt.buttons) {
                         case 1: { //  left
@@ -183,7 +183,7 @@
                             if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
                                 this.system.ctlMove = (deltaX > 0) ? 2 : 4; // 右移 左移
                             } else {
-                                this.system.ctlMove = (deltaY > 0) ? 3 : 1; // 前进 后退
+                                this.system.ctlMove = (deltaY > 0) ? 1 : 3; // 前进 后退
                             }
 
                             this.clientX = evt.clientX;
@@ -232,12 +232,16 @@
 
         },
         touchStart: function (evt) { // evt.type == 'touchstart'
+        evt.stopPropagation();
+        // evt.preventDefault();
+        var touches = evt.touches;
+        this.scaleStatus = touches.length == 2 ? 1 : 0; // 0 no two fingers, 1: is two fingers
+        console.log(1, this.scaleStatus );
             if (this.isDown) return;
             this.distance = 0;
             this.system.ctlMove = 0;
             this.isDown = true;
-            this.scaleStatus = touches.length == 2 ? 1 : 0; // 0 no two fingers, 1: is two fingers
-            var touches = evt.touches;
+            
             this.clientX = touches[0].clientX;
             this.clientY = touches[0].clientY;
 
@@ -245,6 +249,7 @@
                 this.distance = (touches[0].clientX - touches[1].clientX) * (touches[0].clientX - touches[1].clientX)
                     + (touches[0].clientY - touches[1].clientY) * (touches[0].clientY - touches[1].clientY);
             } else this.distance = false;
+            
         },
         touchMove: (function () {
             var deltaX, deltaY;
@@ -253,9 +258,11 @@
             var distance;
 
             return function (evt) {
-                if (this.isDown) {
+                evt.stopPropagation();
+                // evt.preventDefault();
+                if (true || this.isDown) {
                     touches = evt.touches;
-
+                    console.log(touches.length);
                     if (touches.length == 3) { // 三指， 旋转，但是只判断第一个触摸屏
 
                         deltaX = touches[0].clientX - this.clientX;
@@ -270,6 +277,7 @@
                         if (this.scaleStatus == 0) this.scaleStatus = 1;
                         distance = (touches[0].clientX - touches[1].clientX) * (touches[0].clientX - touches[1].clientX)
                             + (touches[0].clientY - touches[1].clientY) * (touches[0].clientY - touches[1].clientY);
+                            console.log(this.distance, distance);
                         if (!this.distance) this.distance = distance;
                         else if (Math.abs(this.distance - distance) > 20) {
                             this.scaleStatus = 2;
@@ -282,18 +290,19 @@
                             // this.el.object3D.scale.x = this.el.object3D.scale.y = this.el.object3D.scale.z = scale;
                             this.distance = distance;
                         }
+                        console.log(2, this.scaleStatus );
                     } else { // 只判断1指的前后左右平移操作
                         deltaX = touches[0].clientX - this.clientX;
                         deltaY = touches[0].clientY - this.clientY;
 
                         this.distance = false;
 
-                        if (Math.abs(deltaX) < step && Math.abs(deltaY) < step) break;
+                        if (Math.abs(deltaX) < step && Math.abs(deltaY) < step) return;
 
                         if (Math.abs(deltaX) > Math.abs(deltaY)) { // 左右
                             this.system.ctlMove = (deltaX > 0) ? 2 : 4; // 右移 左移
                         } else {
-                            this.system.ctlMove = (deltaY > 0) ? 3 : 1; // 前进 后退
+                            this.system.ctlMove = (deltaY > 0) ? 1 : 3; // 前进 后退
                         }
 
                         this.clientX = touches[0].clientX;
@@ -303,12 +312,18 @@
             }
         })(),
         touchEnd: function (evt) {
+            evt.stopPropagation();
+            // evt.preventDefault();
+            console.log(3, this.scaleStatus );
             if (this.scaleStatus == 1) {
-                this.scaleStatus = 0;
+                this.scaleStatus = 11;
                 this.system.ctlMove = 6;
                 setTimeout(function () {
+                    this.scaleStatus = 0;
                     this.system.ctlMove = 0;
                 }.bind(this), 500);
+            } else if(this.scaleStatus != 11)  {
+                this.system.ctlMove = 0;
             }
             this.isDown = false;
         },
