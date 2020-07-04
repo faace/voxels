@@ -55,16 +55,14 @@
                     touchTarget.addEventListener('mousedown', this.mouseDown.bind(this));
                     touchTarget.addEventListener('mousemove', this.mouseMove.bind(this));
                     touchTarget.addEventListener('mouseup', this.mouseUp.bind(this));
-                    touchTarget.addEventListener('mousewheel', this.mouseWheel.bind(this));
-
-
+                    touchTarget.addEventListener('mousewheel', this.mouseWheel.bind(this), { passive: false });
 
                     document.oncontextmenu = function () { return false; }
                 } else {
-                    touchTarget.addEventListener('touchstart', this.touchStart.bind(this));
-                    touchTarget.addEventListener('touchmove', this.touchMove.bind(this));
-                    touchTarget.addEventListener('touchend', this.touchEnd.bind(this));
-                    touchTarget.addEventListener('touchcancel', this.touchEnd.bind(this));
+                    touchTarget.addEventListener('touchstart', this.touchStart.bind(this), { passive: false });
+                    touchTarget.addEventListener('touchmove', this.touchMove.bind(this), { passive: false });
+                    touchTarget.addEventListener('touchend', this.touchEnd.bind(this), { passive: false });
+                    touchTarget.addEventListener('touchcancel', this.touchEnd.bind(this), { passive: false });
                 }
             } else console.log('Error touchTarget!');
         },
@@ -229,19 +227,19 @@
         mouseWheel: function (evt) {
             if (evt.wheelDelta > 0) this.system.scaleUp(); // 向上滚，变大
             else this.system.scaleDown();
-
+            evt.stopPropagation();
+            evt.preventDefault();
         },
         touchStart: function (evt) { // evt.type == 'touchstart'
-        evt.stopPropagation();
-        // evt.preventDefault();
-        var touches = evt.touches;
-        this.scaleStatus = touches.length == 2 ? 1 : 0; // 0 no two fingers, 1: is two fingers
-        console.log(1, this.scaleStatus );
+            evt.stopPropagation();
+            evt.preventDefault();
+            var touches = evt.touches;
+            this.scaleStatus = touches.length == 2 ? 1 : 0; // 0 no two fingers, 1: is two fingers
             if (this.isDown) return;
             this.distance = 0;
             this.system.ctlMove = 0;
             this.isDown = true;
-            
+
             this.clientX = touches[0].clientX;
             this.clientY = touches[0].clientY;
 
@@ -249,7 +247,6 @@
                 this.distance = (touches[0].clientX - touches[1].clientX) * (touches[0].clientX - touches[1].clientX)
                     + (touches[0].clientY - touches[1].clientY) * (touches[0].clientY - touches[1].clientY);
             } else this.distance = false;
-            
         },
         touchMove: (function () {
             var deltaX, deltaY;
@@ -259,12 +256,10 @@
 
             return function (evt) {
                 evt.stopPropagation();
-                // evt.preventDefault();
+                evt.preventDefault();
                 if (true || this.isDown) {
                     touches = evt.touches;
-                    console.log(touches.length);
                     if (touches.length == 3) { // 三指， 旋转，但是只判断第一个触摸屏
-
                         deltaX = touches[0].clientX - this.clientX;
                         deltaY = touches[0].clientY - this.clientY;
                         this.clientX = touches[0].clientX;
@@ -277,20 +272,14 @@
                         if (this.scaleStatus == 0) this.scaleStatus = 1;
                         distance = (touches[0].clientX - touches[1].clientX) * (touches[0].clientX - touches[1].clientX)
                             + (touches[0].clientY - touches[1].clientY) * (touches[0].clientY - touches[1].clientY);
-                            console.log(this.distance, distance);
                         if (!this.distance) this.distance = distance;
                         else if (Math.abs(this.distance - distance) > 20) {
                             this.scaleStatus = 2;
                             if (distance > this.distance) this.system.scaleUp(); // 向上滚，变大
                             else this.system.scaleDown();
-                            // var gap = 0.001 * (distance > this.distance ? 1 : -1)
-                            // var scale = this.el.object3D.scale.z + gap * Math.sqrt(Math.abs(distance - this.distance));
-                            // if (scale < 0.3) scale = 0.3;
-                            // else if (scale > 3) scale = 3;
-                            // this.el.object3D.scale.x = this.el.object3D.scale.y = this.el.object3D.scale.z = scale;
+
                             this.distance = distance;
                         }
-                        console.log(2, this.scaleStatus );
                     } else { // 只判断1指的前后左右平移操作
                         deltaX = touches[0].clientX - this.clientX;
                         deltaY = touches[0].clientY - this.clientY;
@@ -313,8 +302,8 @@
         })(),
         touchEnd: function (evt) {
             evt.stopPropagation();
-            // evt.preventDefault();
-            console.log(3, this.scaleStatus );
+            evt.preventDefault();
+            console.log(3, this.scaleStatus);
             if (this.scaleStatus == 1) {
                 this.scaleStatus = 11;
                 this.system.ctlMove = 6;
@@ -322,7 +311,7 @@
                     this.scaleStatus = 0;
                     this.system.ctlMove = 0;
                 }.bind(this), 500);
-            } else if(this.scaleStatus != 11)  {
+            } else if (this.scaleStatus != 11) {
                 this.system.ctlMove = 0;
             }
             this.isDown = false;
@@ -338,12 +327,12 @@
                     touchTarget.removeEventListener('mousedown', this.mouseDown.bind(this));
                     touchTarget.removeEventListener('mousemove', this.mouseMove.bind(this));
                     touchTarget.removeEventListener('mouseup', this.mouseUp.bind(this));
-                    touchTarget.removeEventListener('mousewheel', this.mouseUp.bind(this));
+                    touchTarget.removeEventListener('mousewheel', this.mouseUp.bind(this), { passive: false });
                 } else {
-                    touchTarget.removeEventListener('touchstart', this.touchStart.bind(this));
-                    touchTarget.removeEventListener('touchmove', this.touchMove.bind(this));
-                    touchTarget.removeEventListener('touchend', this.touchEnd.bind(this));
-                    touchTarget.removeEventListener('touchcancel', this.touchEnd.bind(this));
+                    touchTarget.removeEventListener('touchstart', this.touchStart.bind(this), { passive: false });
+                    touchTarget.removeEventListener('touchmove', this.touchMove.bind(this), { passive: false });
+                    touchTarget.removeEventListener('touchend', this.touchEnd.bind(this), { passive: false });
+                    touchTarget.removeEventListener('touchcancel', this.touchEnd.bind(this), { passive: false });
                 }
             }
         },

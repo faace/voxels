@@ -38,31 +38,37 @@
                     'img#floor2': './img/floor2.jpg',
                     'img#floor3': './img/floor3.jpg',
                 });
-
+                scene.addEntities('<a-entity light="color: #333; type: ambient"></a-entity>');
                 var size = this.size = 0.1;
                 var entity = scene.addAnEntity('a-entity#building', {
                     'super-touch': 'rotationX:-30 30;rotationZ:-30 30;scale:1 5', 'position': '0 -3 -3', rotation: '0 0 0',
                     'voxels-sys': 'touchTarget:#building;rotationX:-30 30;rotationZ:-30 30;scale:1 5'
                 });
                 var map = entity.addAnEntity('a-voxels#map', {
-                    src: '../ply/multiCameras.ply',
+                    src: '../ply/skull.ply',
                     textures: '#111111_floor3,#no_444444_floor2',
                     opacities: '#3300cc_0.6',
-                    align: 'center bottom center',
+                    // align: 'center bottom center',
                     width: size,
                     height: size,
                     depth: size,
                     type: 'map',
                 });
-
+                // this.hero = entity.addAnEntity('a-entity',"")
                 this.chick = entity.addAnEntity('a-voxels#chick', {
                     src: '../ply/chick.ply;../ply/chick1.ply;../ply/chick2.ply',
                     anims: 'stand:0;walk:1,2',
-                    align: 'center bottom center',
+                    // align: 'center bottom center',
                     'cell-size': size,
-                    position: '0 1 0',
+                    position: '-2 5 15',
                     type: 'hero',
                 });
+                this.chick.addAnEntity('a-entity', {
+                    light: "type:spot;intensity: 0.6; castShadow: true",
+                    position: "0 0.141 0",
+                    rotation: '0 180 0'
+                });
+
 
                 this.camera1 = scene.addAnEntity('a-entity', { camera: '', 'position2': '0 5.6 -2', rotation: '-25 0 0' });
                 scene.addAnEntity('a-sky', { color: "#aCaCEC" });

@@ -437,7 +437,7 @@
             maps: { type: 'string', default: '' },
             mapIdx: { type: 'number', default: 0 },
             src: { type: 'string', default: '' },
-            align: { type: 'string', default: 'center center center' },
+            align: { type: 'string', default: 'center bottom center' },
             width: { type: 'number', default: 1 },
             height: { type: 'number', default: 1 },
             depth: { type: 'number', default: 1 },
@@ -645,9 +645,16 @@
             for (var i in anims) this.setOneAnim(this.el, i, anims[i]);
         },
         setOneAnim: function (target, type, frames, cb) {
+            var children;
+            for (var i = 0; i < target.object3D.children.length; i++) {
+                if (target.object3D.children[i].el == this.el) {
+                    children = target.object3D.children[i];
+                    break;
+                }
+            }
+            if (!children) return;
             if (!target.anims) target.anims = {};
             target.anims[type] = function (ms, times) {
-                var children = target.object3D.children[0].children;
                 if (frames.length == 1) this.setChildrenVisbile(children, 0);
                 else {
                     times = times || frames.length;
