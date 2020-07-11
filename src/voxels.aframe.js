@@ -14,11 +14,18 @@
     var voxelsSys = {
         init: function () {
             this.size = 0.1;
+            this.addEventListener('HeroMove', this.onHeroMoveForTeleport.bind(this));
         },
         mixins: function (from) {
             for (var i in from) this[i] = from[i];
             return this;
         },
+        getUId: (function () {
+            var i = 0;
+            return function () {
+                return '' + (++i);
+            }
+        })(),
         tick: function (ms, dms) {
             switch (this.status) {
                 case STATUS_MOVE: {
@@ -28,8 +35,7 @@
                 case STATUS_TELEPROT: break;
             }
         },
-    };
-    voxelsSys.mixins({ // for events
+    }.mixins({ // for events
         events: {},
         addEventListener: function (name, cb) {
             this.events[name] = this.events[name] || [];
@@ -42,13 +48,23 @@
                 if (idx > -1) this.events[name].splice(idx, 1);
             }
         },
+        postEvent: function (name, parm, cb) {
+            var list = this.events[name];
+            if (list && list.length > 0) {
+                var realCb = AFRAME.afterAllCallback(list.length, cb)
+                for (var i = 0; i < list.length; i++) {
+                    list[i](name, parm, realCb);
+                }
+            } else cb && cb();
+        },
     }).mixins({ // for teleports
         teleports: {},
-        checkTeleport: function (cb) {
-            var mapPos = this.hero.mapPos;
+        onHeroMoveForTeleport: function (name, parm, cb) {
+            var mapPos = parm.mapPos;
             var port = this.teleports[mapPos.y] && this.teleports[mapPos.y][mapPos.z] && this.teleports[mapPos.y][mapPos.z][mapPos.x];
             if (!port || port.length < 1) return cb && cb();
-            var one = port[Math.floor(Math.random() * port.length)];
+            var idx = Math.floor(Math.random() * port.length);
+            var one = port[idx];
 
             this.status = STATUS_TELEPROT;
 
@@ -70,6 +86,12 @@
                 ),
                 anim.cb(function () {
                     this.status = STATUS_MOVE;
+                    if (one.times > 0) {
+                        if (--one.times < 1) {
+                            port.splice(idx, 1);
+                            if (port.length < 1) delete this.teleports[mapPos.y][mapPos.z][mapPos.x];
+                        }
+                    }
                     cb && cb();
                 }.bind(this)),
             );
@@ -82,7 +104,8 @@
             var one, from, to, fx, fy, fz, yTel, zTel;
             for (var i = 0; i < teleports.length; i++) {
                 one = teleports[i].split('>');
-                if (one.length != 2) throw '[setTeleports] error data: [' + i + ']' + teleports[i]
+                if (one.length != 2 || one.length != 3) throw '[setTeleports] error data: [' + i + ']' + teleports[i]
+                var times = parseInt(one[2]) || 0;
                 from = one[0].split(',');
                 to = one[1].split(',');
                 fx = parseInt(from[0]);
@@ -92,35 +115,89 @@
                 yTel = this.teleports[fy] = this.teleports[fy] || {};
                 zTel = yTel[fz] = yTel[fz] || {};
                 zTel[fx] = zTel[fx] || [];
-                zTel[fx].push({ x: parseInt(to[0]), y: parseInt(to[1]), z: parseInt(to[2]) });
+                zTel[fx].push({ x: parseInt(to[0]), y: parseInt(to[1]), z: parseInt(to[2]), times: times });
             }
         },
     }).mixins({ // for camera
-        addHeroCamera: function (camera1) {
-            if (!this.cameras && camera1) {
-                this.cameras = [1, camera1];
+        cameras: {
+            _lockTo: -1,
+            _id: -1,
+            _list: [],
+        },
+        addCamera: function (parm) {
+            var id = parm.id || parm.camera.id || this.getUId();
+            this.cameras[id] = parm.camera;
+            if (parm.cannotSwitch) return;
+            if (this.cameras._list.length == 0) this.cameras._id = id;
+            this.cameras._list.push(id);
+        },
+        addHeroCamera: function (hero) {
+            var height = (hero.bound.maxY - hero.bound.minY + 1) / (hero.bound.maxZ - hero.bound.minZ + 1) * this.size * 1.1;
+            var camera = hero.addAnEntity('a-entity#heroCamera', { camera: 'active: false', 'position': '0 ' + height + ' 0', rotation: '0 180 0' });
+            this.addCamera({ camera: camera });
+        },
+        switchCamera: function (id) {
+            if (this.cameras._lockTo > -1) {
+                id = this.cameras._lockTo;
+            } else if (!id) {
+                var idx = this.cameras._list.indexOf(this.cameras._id);
+                if (idx < 0) idx = 0;
+                else idx++
+                if (idx >= this.cameras._list.length) idx = 0;
+                id = this.cameras._list[idx];
             }
-            if (!this.hero) return this.needHeroCamera = true;
-            delete this.needHeroCamera;
-            var height = (this.hero.bound.maxY - this.hero.bound.minY + 1) / (this.hero.bound.maxZ - this.hero.bound.minZ + 1) * this.size * 1.1;
-            var camera2 = this.hero.addAnEntity('a-entity', { camera: 'active: false', 'position': '0 ' + height + ' 0', rotation: '0 180 0' });
-            if (this.cameras) {
-                this.cameras.push(camera2);
-                // this.cameras[0] = 2;
-            } else {
-                this.cameras = [1, camera2];
-                this.cameras[1].setAttribute('camera', 'active', true);
+
+            if (this.cameras._id == id) return; // 不变
+
+            this.cameras._id = id;
+            this.cameras[id].setAttribute('camera', 'active', true);
+        },
+        lockCamera: function (id) {
+            this.cameras._lockTo = this.cameras._list.indexOf(id);
+            this.switchCamera();
+        },
+        unlockCamera: function () {
+            this.cameras._lockTo = -1;
+        }
+    }).mixins({ // for lights
+        lights: {
+            _list: []
+        },
+        addLight: function (light, name) {
+            name = name || light.id || this.getUId();
+            this.lights[name] = light;
+        },
+        turnon: function (lights) {
+            if (!lights) { // 表示开启所有
+                for (var i in this.lights) {
+                    if (i != '_list') this.lights[i].visible = true;
+                }
+            }
+            var l = lights.split(','), name;
+            for (var i = 0; i < l.length; i++) {
+                name = l[i].trim();
+                if (this.lights[name]) this.lights[name].visible = true;
             }
         },
-        switchCamera: function (idx) {
-            if (!idx) {
-                idx = (this.cameras[0] + 1);
-                if (idx >= this.cameras.length) idx = 1;
+        turnonOnly: function (lights) {
+            this.turnoff();
+            this.turnon(lights);
+        },
+        turnoff: function (lights) {
+            if (!lights) { // 表示开启所有
+                for (var i in this.lights) {
+                    if (i != '_list') this.lights[i].visible = false;
+                }
             }
-            if (!this.cameras || !this.cameras[idx]) return; // 不存在
-            if (this.cameras[0] == idx) return; // 不变
-            this.cameras[idx].setAttribute('camera', 'active', true);
-            this.cameras[0] = parseInt(idx);
+            var l = lights.split(','), name;
+            for (var i = 0; i < l.length; i++) {
+                name = l[i].trim();
+                if (this.lights[name]) this.lights[name].visible = false;
+            }
+        },
+        turnoffOnly: function (lights) {
+            this.turnon();
+            this.turnoff(lights);
         },
     }).mixins({ // for map and hero
         status: STATUS_IDLE, // hero status
@@ -140,7 +217,8 @@
                     target.bound = bound;
                     this.hero = target;
                     this.hero.isMoving = false;
-                    if (this.needHeroCamera) this.addHeroCamera();
+                    if (this.needHeroCamera) this.addHeroCamera(this.hero);
+                    while (this.heroFace-- > 0) this.rotateHero(true, true);
                     break;
                 }
                 case 'item': {
@@ -181,23 +259,14 @@
             }
             if (opacity < 1) return true;
         },
-        checkMoveEvent: function (cb) {
-            if (this.events.heroMove && this.events.heroMove.length > 0) {
-                var realCb = AFRAME.afterAllCallback(this.events.heroMove.length, cb)
-                for (var i = 0; i < this.events.heroMove.length; i++) {
-                    this.events.heroMove[i](this.hero.mapPos, realCb);
-                }
-            } else cb && cb();
-        },
         afterHeroMoving: function () {
             this.setTargetPos(this.hero);
-            this.checkTeleport(function () {
-                this.checkMoveEvent(function () {
-                    this.hero.isMoving = false;
-                    if (this.ctlMove) this.moveHeroByGodCamera();
-                    else if (this.hero.anims && this.hero.anims.stand) this.hero.anims.stand();
-                }.bind(this));
+            this.postEvent('HeroMove', { mapPos: this.hero.mapPos }, function () {
+                this.hero.isMoving = false;
+                if (this.ctlMove) this.moveHeroByGodCamera();
+                else if (this.hero.anims && this.hero.anims.stand) this.hero.anims.stand();
             }.bind(this));
+
         },
         moveHeroByGodCamera: function () {
             if (!this.hero || this.maps.length < 1) return;
@@ -298,7 +367,7 @@
             this.hero.animRun(anim);
 
         },
-        rotateHero: function (clockwise) {
+        rotateHero: function (clockwise, noAnim) {
             // if (this.ctlMove > 0 && this.ctlMove != this.faceTo) return this.rotateHero(this.ctlMove);
             var nextFaceTo = {
                 'true': { 1: 4, 4: 3, 3: 2, 2: 1 }, // 顺时针
@@ -317,8 +386,12 @@
                 angle = -90;
             }
 
-            this.hero.isMoving = true;
             this.faceTo = faceTo;
+            if (noAnim) {
+                this.hero.object3D.rotation.y += angle * PI / 180;
+                return;
+            }
+            this.hero.isMoving = true;
             var anim = AFRAME.anim();
             anim.sequence(
                 anim.rotationTo(500, { x: 0, y: angle, z: 0 }),
@@ -329,7 +402,7 @@
         },
     }).mixins({ // touchTarget
         setTouchTarget: function (data) {
-            this.touchTarget = AFRAME.$(data.touchTarget);
+            this.touchTarget = (typeof data.touchTarget == 'string') ? AFRAME.$(data.touchTarget) : data.touchTarget;
             this.ttRotation = this.touchTarget.object3D.rotation;
             this.ttScale = this.touchTarget.object3D.scale;
             this.ttRotationY = data.rotationY;
@@ -412,6 +485,8 @@
             size: { type: 'number', default: 0.1 },
             maxMs: { type: 'number', default: 500 },
             teleports: { type: 'string', default: '' }, // x y z: x y z, x y z: x y z,
+            needHeroCamera: { type: 'boolean', default: 'true' },
+            heroFace: { type: 'number', default: 1 },
 
             touchTarget: { type: 'string' },
             rotationY: getRangeSchema(-Math.PI, Math.PI, PI / 180),
@@ -424,10 +499,13 @@
             this.system = this.el.sceneEl.systems['voxels'];
             this.system.size = this.data.size;
             this.system.maxMs = this.data.maxMs;
+            this.system.needHeroCamera = this.data.needHeroCamera;
+            this.system.heroFace = this.data.heroFace;
             this.system.setTeleports(this.data.teleports);
-            console.log('>>>>', this.data.touchTarget);
+
+            if (!this.data.touchTarget) this.data.touchTarget = this.el;
             this.system.setTouchTarget(this.data);
-            // AFRAME.$(this.data.touchTarget)
+
         }
     });
 
@@ -438,10 +516,10 @@
             mapIdx: { type: 'number', default: 0 },
             src: { type: 'string', default: '' },
             align: { type: 'string', default: 'center bottom center' },
-            width: { type: 'number', default: 1 },
-            height: { type: 'number', default: 1 },
-            depth: { type: 'number', default: 1 },
-            cell: { type: 'number', default: -1 },
+            width: { type: 'number', default: 0.1 },
+            height: { type: 'number', default: 0.1 },
+            depth: { type: 'number', default: 0.1 },
+            // cell: { type: 'number', default: -1 },
             'cell-size': { type: 'number', default: -1 },
             textures: {
                 default: {},// #dd0000_floor,#dddd00_box
@@ -591,8 +669,8 @@
                 cellSize: data['cell-size'],
                 showFaces: data.faces
             };
-            // var colors = mvPly2Map.getAllColors(map);
-            // console.log(colors);
+            var colors = mvPly2Map.getAllColors(map);
+            console.log(colors);
 
             new Voxels(info).run(function (error, mesh, map, bound) {
                 if (error) throw error;
@@ -645,15 +723,17 @@
             for (var i in anims) this.setOneAnim(this.el, i, anims[i]);
         },
         setOneAnim: function (target, type, frames, cb) {
+            if (!target.anims) target.anims = {};
+
             var children;
             for (var i = 0; i < target.object3D.children.length; i++) {
                 if (target.object3D.children[i].el == this.el) {
-                    children = target.object3D.children[i];
+                    children = target.object3D.children[i].children;
                     break;
                 }
             }
             if (!children) return;
-            if (!target.anims) target.anims = {};
+
             target.anims[type] = function (ms, times) {
                 if (frames.length == 1) this.setChildrenVisbile(children, 0);
                 else {
@@ -688,7 +768,7 @@
             width: 'voxels.width',
             height: 'voxels.height',
             depth: 'voxels.depth',
-            cell: 'voxels.cell',
+            // cell: 'voxels.cell',
             'cell-size': 'voxels.cell-size',
             textures: 'voxels.textures',
             opacities: 'voxels.opacities',

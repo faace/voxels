@@ -20,6 +20,7 @@
             id: 'scene1',
             onInit: function (scene) {
                 scene.assets.addList({
+                    'img#floor5': './img/floor5.png',
                     'img#floor2': './img/floor2.jpg',
                     'img#floor3': './img/floor3.jpg',
                 });
@@ -38,8 +39,8 @@
 
                 var map = world.addAnEntity('a-voxels#map', {
                     type: 'map',
-                    src: '../ply/skull.ply',
-                    textures: '#111111_floor3,#no_444444_floor2',
+                    src: '../ply/skull2.ply',
+                    textures: '#ffd9a5_floor5,#no_444444_floor2',
                     opacities: '#3300cc_0.6',
                 });
 
@@ -48,7 +49,7 @@
                     src: '../ply/chick.ply;../ply/chick1.ply;../ply/chick2.ply',
                     anims: 'stand:0;walk:1,2',
                     'cell-size': 0.1,
-                    position: '-2 5 15',
+                    position: '-5 8 13',
                 });
                 // this.chickLight = this.chick.addAnEntity('a-entity#spot', {
                 //     light: "type:spot;intensity: 0.6; castShadow: true",
@@ -61,7 +62,7 @@
             },
             onLoaded: function (scene) {
                 var sysVoxels = scene.systems.voxels;
-                sysVoxels.addCamera({ camera: this.camera, canSwitch: true });
+                sysVoxels.addCamera({ camera: this.camera });
                 // sysVoxels.addLight(this.ambient);
                 // sysVoxels.addLight(this.chickLight);
             }

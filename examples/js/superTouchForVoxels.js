@@ -1,45 +1,15 @@
 (function () {
     if (typeof AFRAME == 'undefined') throw '[super touch] AFRAME should be loaded first.';
 
-    const PI = Math.PI, subPI = -PI;
-    const PI2 = Math.PI * 2, subPI2 = -PI2;
-    const PI_25 = Math.PI * 0.25;
-    const PI_5 = Math.PI * 0.5;
-
-    var getRangeSchema = function (min, max, scale) {
-        scale = scale || 1;
-        return {
-            default: { min: min, max: max },// #dd0000_floor,#dddd00_box
-            parse: function (value) {
-                var t = { min: min, max: max };
-                if (typeof value == 'string') {
-                    var list = value.trim().split(' ');
-                    var l0 = parseFloat(list[0] * scale), l1 = parseFloat(list[1] * scale);
-                    t.min = Math.min(l0, l1);
-                    t.max = Math.max(l0, l1);
-                }
-                return t;
-            },
-            stringify: function (value) {
-                return (value.min / scale) + ' ' + (value.max / scale);
-            }
-        };
-    };
-
     AFRAME.registerComponent('super-touch', {
 
         schema: {
             touchTarget: { type: 'string' },
-            rotationY: getRangeSchema(-Math.PI, Math.PI, PI / 180),
-            rotationX: getRangeSchema(-Math.PI, Math.PI, PI / 180),
-            rotationZ: getRangeSchema(-Math.PI, Math.PI, PI / 180),
-            scale: getRangeSchema(0.01, 2, 1),
         },
 
         init: function () {
             this.registerEvents();
             this.system = this.el.sceneEl.systems['voxels'];
-            this.scaleStep = (this.data.scale.max - this.data.scale.min) * 0.1;
         },
 
         registerEvents: function () {

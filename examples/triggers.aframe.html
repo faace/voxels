@@ -79,11 +79,11 @@
             },
             onLoaded: function (scene) {
                 var posShow = new THREE.Vector3(-4, 3, 2);
-                scene.systems.voxels.addEventListener('heroMove', function (position, cb) {
+                scene.systems.voxels.addEventListener('HeroMove', function (position, cb) {
                     // console.log('====', position);
                     if (posShow && posShow.equals(position)) {
                         posShow = undefined;
-                        scene.systems.voxels.removeEventListener('heroMove', arguments.callee, false);
+                        scene.systems.voxels.removeEventListener('HeroMove', arguments.callee, false);
                         var anim = AFRAME.anim();
                         anim.sequence(
                             anim.spawn(
