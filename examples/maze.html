@@ -30,7 +30,7 @@
                 this.camera = scene.addAnEntity('a-entity#global', { camera: '', rotation: '-25 0 0' });
                 this.ambient = scene.addAnEntity('a-entity#ambient', { light: 'color: #bbb; type: ambient;' });
                 this.directional = scene.addAnEntity('a-entity#directional', { light: 'intensity: 0.6; color: #fff; castShadow: true', position: "-0.5 1 1" });
-                // <a-entity light="intensity: 0.6; castShadow: true" position="-0.5 1 1" data-aframe-default-light="" aframe-injected=""></a-entity>
+
                 var world = scene.addAnEntity('a-entity', {
                     'position': '0 -3 -3',
                     'super-touch': '',
@@ -40,7 +40,7 @@
                 var map = world.addAnEntity('a-voxels#map', {
                     type: 'map',
                     src: '../ply/skull2.ply',
-                    textures: '#ffd9a5_floor5,#no_444444_floor2',
+                    // textures: '#ffd9a5_floor5,#no_444444_floor2',
                     opacities: '#3300cc_0.6',
                 });
 
@@ -49,22 +49,78 @@
                     src: '../ply/chick.ply;../ply/chick1.ply;../ply/chick2.ply',
                     anims: 'stand:0;walk:1,2',
                     'cell-size': 0.1,
-                    position: '-5 8 13',
+                    // position: '-5 8 13',
+                    position: '-16 8 -8',
                 });
-                // this.chickLight = this.chick.addAnEntity('a-entity#spot', {
-                //     light: "type:spot;intensity: 0.6; castShadow: true",
-                //     position: "0 0.141 0",
-                //     rotation: '0 180 0'
-                // });
-                // this.chickLight.visible = false;
-
+                this.heroLight = this.chick.addAnEntity('a-entity#chickSpot', {
+                    light: "type:spot;intensity: 0.6;",
+                    position: "0 0.141 0",
+                    rotation: '0 180 0'
+                });
+                this.heroLight.visible = false;
 
             },
             onLoaded: function (scene) {
                 var sysVoxels = scene.systems.voxels;
                 sysVoxels.addCamera({ camera: this.camera });
-                // sysVoxels.addLight(this.ambient);
-                // sysVoxels.addLight(this.chickLight);
+                sysVoxels.addLight(this.ambient);
+                sysVoxels.addLight(this.directional);
+                sysVoxels.addLight(this.heroLight);
+
+                scene.systems.voxels.addEventListener('HeroMove', function (name, data, cb) {
+                    console.log('====', data.mapPos);
+                    var mp = data.mapPos.x + '_' + data.mapPos.y + '_' + data.mapPos.z;
+
+                    switch (mp) {
+                        case '-15_8_-9':
+                        case '-15_8_-8':
+                        case '-15_8_-7':
+                        case '20_5_21':
+                        case '20_5_22':
+                        case '20_5_23':
+                        case '-9_14_-18':
+                        case '-9_14_-19':
+                        case '-9_14_-20': { // 到外面了
+                            sysVoxels.turnonOnly('ambient,directional');
+                            sysVoxels.unlockCamera('');
+                            break;
+                        }
+                        case '-13_8_-9':
+                        case '-13_8_-8':
+                        case '-13_8_-7':
+                        case '-8_13_-18':
+                        case '-8_13_-19':
+                        case '-8_13_-20':
+                        case '23_4_21':
+                        case '23_4_22':
+                        case '23_4_23': { // 到山洞了
+                            sysVoxels.turnonOnly('chickSpot');
+                            sysVoxels.lockCamera('heroCamera');
+                            break;
+                        }
+
+                    }
+
+                    // if (posShow && posShow.equals(position)) {
+                    //     posShow = undefined;
+                    //     scene.systems.voxels.removeEventListener('HeroMove', arguments.callee, false);
+                    //     var anim = AFRAME.anim();
+                    //     anim.sequence(
+                    //         anim.spawn(
+                    //             anim.fadeIn(1000),
+                    //             anim.moveBy(1000, { x: 0, y: this.size, z: 0 }),
+                    //             anim.cb(function () { this.trigger.visible = true; }.bind(this)),
+                    //         ),
+                    //         anim.cb(function () {
+                    //             console.log('here');
+                    //             this.trigger.mapPos.y++;
+                    //             cb && cb();
+                    //         }.bind(this)),
+                    //     );
+                    //     this.trigger.animRun(anim)
+                    // } else cb && cb();
+                    cb && cb();
+                }.bind(this));
             }
         });
         AFRAME.loadScene('scene1');
